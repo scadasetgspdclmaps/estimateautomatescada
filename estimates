@@ -2,146 +2,131 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>TGSPDCL – SCADA Estimate Tool</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TGSPDCL SCADA – Estimate Sanction Tool</title>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
 <script src="https://unpkg.com/docx@8.5.0/build/index.js"></script>
 <script src="https://unpkg.com/file-saver@2.0.5/dist/FileSaver.min.js"></script>
 <style>
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: 'Segoe UI', Arial, sans-serif; background: #eef1f7; color: #1a1a2e; }
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',Arial,sans-serif;background:#eef1f7;color:#1a1a2e;font-size:14px}
+:root{--blue:#0a2463;--mid:#1b4f8a;--accent:#3b82c4;--green:#16a34a;--red:#dc2626;--amber:#d97706}
 
-header {
-  background: linear-gradient(135deg, #0a2463, #1b4f8a);
-  color: #fff; padding: 15px 28px;
-  display: flex; align-items: center; gap: 14px;
-  box-shadow: 0 3px 12px rgba(0,0,0,.3);
-}
-header .logo { font-size: 32px; }
-header h1 { font-size: 16px; font-weight: 700; line-height: 1.3; }
-header p { font-size: 11.5px; opacity: .7; margin-top: 2px; }
+header{background:linear-gradient(135deg,var(--blue),var(--mid));color:#fff;
+  padding:14px 26px;display:flex;align-items:center;gap:14px;box-shadow:0 3px 12px rgba(0,0,0,.3)}
+header .logo{font-size:28px}
+header h1{font-size:15px;font-weight:700;line-height:1.3}
+header p{font-size:11px;opacity:.7;margin-top:2px}
+#fb-pill{margin-left:auto;padding:5px 12px;border-radius:20px;font-size:12px;font-weight:700;
+  background:rgba(255,255,255,.15)}
+#fb-pill.ok{background:rgba(34,197,94,.3);color:#86efac}
 
-.tabs { display: flex; background: #0a2463; padding: 0 22px; }
-.tab { padding: 11px 22px; cursor: pointer; color: #7fa8cc; font-size: 13.5px; font-weight: 600;
-       border-bottom: 3px solid transparent; transition: .15s; }
-.tab.active { color: #6dd5fa; border-bottom-color: #6dd5fa; }
-.tab:hover { color: #b8d8f0; }
+.tabs{display:flex;background:var(--blue);padding:0 22px;overflow-x:auto}
+.tab{padding:11px 18px;cursor:pointer;color:#7fa8cc;font-size:13px;font-weight:600;
+  white-space:nowrap;border-bottom:3px solid transparent;transition:.15s}
+.tab.active{color:#6dd5fa;border-bottom-color:#6dd5fa}
+.tab:hover{color:#b8d8f0}
 
-.page { display: none; padding: 20px; max-width: 1080px; margin: 0 auto; }
-.page.active { display: block; }
+.page{display:none;padding:18px;max-width:1100px;margin:0 auto}
+.page.active{display:block}
 
-/* ── DOC TYPE SELECTOR ── */
-.doc-type-row {
-  display: flex; gap: 12px; margin-bottom: 18px; flex-wrap: wrap;
-}
-.dtype-btn {
-  flex: 1; min-width: 180px; padding: 14px 18px;
-  border: 2.5px solid #c8d6e8; border-radius: 10px; cursor: pointer;
-  background: #fff; text-align: center; transition: .2s;
-}
-.dtype-btn.active { border-color: #1b4f8a; background: #e8f0fb; }
-.dtype-btn .icon { font-size: 22px; margin-bottom: 4px; }
-.dtype-btn .label { font-size: 13px; font-weight: 700; color: #0a2463; }
-.dtype-btn .desc { font-size: 11px; color: #666; margin-top: 2px; }
+/* ── SETUP STEPS ── */
+.step-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+@media(max-width:680px){.step-grid{grid-template-columns:1fr}}
+.step-box{background:#fff;border-radius:11px;padding:18px 20px;
+  box-shadow:0 2px 8px rgba(0,0,0,.07);border-left:4px solid var(--accent)}
+.step-box.done{border-left-color:var(--green)}
+.step-box h3{font-size:13px;font-weight:700;color:var(--blue);margin-bottom:6px;
+  display:flex;align-items:center;gap:8px}
+.step-box p{font-size:12px;color:#555;line-height:1.6}
+.step-box code{background:#f0f4ff;padding:2px 6px;border-radius:4px;font-size:11.5px;color:#1e40af}
+.step-num{background:var(--mid);color:#fff;border-radius:50%;width:22px;height:22px;
+  display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0}
 
 /* ── CARD ── */
-.card {
-  background: #fff; border-radius: 12px; padding: 22px 24px;
-  box-shadow: 0 2px 10px rgba(0,0,0,.07); margin-bottom: 16px;
-}
-.card-title {
-  font-size: 13px; font-weight: 700; color: #0a2463; margin-bottom: 14px;
-  padding-bottom: 8px; border-bottom: 2px solid #e0e8f5;
-  display: flex; align-items: center; gap: 8px;
-}
+.card{background:#fff;border-radius:11px;padding:20px 22px;
+  box-shadow:0 2px 10px rgba(0,0,0,.07);margin-bottom:14px}
+.ct{font-size:13px;font-weight:700;color:var(--blue);padding-bottom:8px;
+  border-bottom:2px solid #e0e8f5;margin-bottom:14px;display:flex;align-items:center;gap:8px}
 
-.sec-label {
-  font-size: 10.5px; font-weight: 700; text-transform: uppercase;
-  letter-spacing: .8px; color: #5b8ec4; margin: 16px 0 8px;
-}
+.grid{display:grid;gap:11px}
+.g2{grid-template-columns:1fr 1fr}
+.g3{grid-template-columns:1fr 1fr 1fr}
+.g4{grid-template-columns:1fr 1fr 1fr 1fr}
+@media(max-width:680px){.g2,.g3,.g4{grid-template-columns:1fr}}
 
-.grid { display: grid; gap: 12px; }
-.g2 { grid-template-columns: 1fr 1fr; }
-.g3 { grid-template-columns: 1fr 1fr 1fr; }
-.g4 { grid-template-columns: 1fr 1fr 1fr 1fr; }
-@media(max-width:680px){ .g2,.g3,.g4{grid-template-columns:1fr;} }
+.field{display:flex;flex-direction:column;gap:4px}
+.field label{font-size:11.5px;font-weight:600;color:#444}
+.field input,.field select,.field textarea{
+  padding:8px 10px;border:1.5px solid #cdd6e6;border-radius:7px;
+  font-size:13px;color:#1a1a2e;background:#f8fafc;transition:border .15s}
+.field input:focus,.field select:focus,.field textarea:focus{
+  outline:none;border-color:var(--accent);background:#fff}
+.field input[readonly]{background:#eff1f5;color:#666}
+.field textarea{resize:vertical;min-height:70px;line-height:1.5}
+.field small{font-size:10.5px;color:#888}
+.slabel{font-size:10.5px;font-weight:700;text-transform:uppercase;
+  letter-spacing:.8px;color:var(--accent);margin:14px 0 7px}
 
-.field { display: flex; flex-direction: column; gap: 4px; }
-.field label { font-size: 11.5px; font-weight: 600; color: #444; }
-.field input, .field select, .field textarea {
-  padding: 8px 11px; border: 1.5px solid #cdd6e6; border-radius: 7px;
-  font-size: 13px; color: #1a1a2e; background: #f8fafc; transition: border .15s;
-}
-.field input:focus, .field select:focus, .field textarea:focus {
-  outline: none; border-color: #3b82c4; background: #fff;
-}
-.field textarea { resize: vertical; min-height: 70px; line-height: 1.5; }
-.field small { font-size: 10.5px; color: #888; }
-.field input[readonly] { background: #eff1f5; color: #666; }
+.doc-types{display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap}
+.dt-btn{flex:1;min-width:160px;padding:12px 14px;border:2.5px solid #c8d6e8;
+  border-radius:10px;cursor:pointer;background:#fff;text-align:center;transition:.2s}
+.dt-btn.active{border-color:var(--blue);background:#e8f0fb}
+.dt-btn .ico{font-size:20px;margin-bottom:3px}
+.dt-btn .lbl{font-size:12.5px;font-weight:700;color:var(--blue)}
+.dt-btn .sub{font-size:10.5px;color:#777;margin-top:2px}
 
-.btn-row { margin-top: 22px; display: flex; gap: 10px; flex-wrap: wrap; }
-.btn { padding: 10px 24px; border: none; border-radius: 8px; font-size: 13.5px;
-       font-weight: 700; cursor: pointer; transition: .15s; }
-.btn-green  { background: #16a34a; color: #fff; }
-.btn-green:hover  { background: #15803d; }
-.btn-blue   { background: #1b4f8a; color: #fff; }
-.btn-blue:hover   { background: #153d6e; }
-.btn-gray   { background: #e2e8f0; color: #333; }
-.btn-gray:hover   { background: #cbd5e1; }
-.btn-red    { background: #dc2626; color: #fff; font-size: 11.5px; padding: 6px 12px; }
-.btn-red:hover    { background: #b91c1c; }
+.btn{padding:9px 20px;border:none;border-radius:8px;font-size:13px;
+  font-weight:700;cursor:pointer;transition:.15s}
+.b-green{background:var(--green);color:#fff}.b-green:hover{background:#15803d}
+.b-blue{background:var(--mid);color:#fff}.b-blue:hover{background:#153d6e}
+.b-gray{background:#e2e8f0;color:#333}.b-gray:hover{background:#cbd5e1}
+.b-red{background:var(--red);color:#fff;font-size:11.5px;padding:6px 12px}
+.b-red:hover{background:#b91c1c}
+.b-amber{background:var(--amber);color:#fff}.b-amber:hover{background:#b45309}
+.btn-row{display:flex;gap:9px;flex-wrap:wrap;margin-top:18px}
 
-/* ── PREVIEW PANE ── */
-.preview-card {
-  background: #fff; border-radius: 12px; padding: 26px 30px;
-  box-shadow: 0 2px 10px rgba(0,0,0,.07); font-family: 'Times New Roman', serif;
-  font-size: 13px; line-height: 1.7; border: 1px solid #dde3ef;
-}
-.preview-card.hidden { display: none; }
-.preview-header { text-align: center; font-weight: bold; margin-bottom: 6px; font-size: 13.5px; }
-.preview-tagline { text-align: center; font-style: italic; font-size: 12px; margin-bottom: 14px; }
-.preview-memo { margin: 10px 0; }
-.preview-sub { margin: 8px 0; }
-.preview-ref { margin: 8px 0 0 20px; }
-.preview-body { margin: 10px 20px; }
-.preview-body p { margin: 6px 0; }
-.preview-sig { margin-top: 24px; display: flex; justify-content: space-between; align-items: flex-end; }
-.preview-to { margin-top: 18px; }
-.preview-sep { text-align: center; margin: 12px 0; letter-spacing: 6px; }
+/* ── SEED PANEL ── */
+.seed-panel{background:linear-gradient(135deg,#f0f7ff,#e8f0fb);
+  border:1.5px solid #bdd3f0;border-radius:10px;padding:16px 20px;margin-bottom:14px}
+.seed-panel h3{font-size:13px;font-weight:700;color:var(--blue);margin-bottom:8px}
+.seed-panel p{font-size:12px;color:#555;margin-bottom:12px;line-height:1.6}
+.seed-status{font-size:12px;margin-top:8px;padding:6px 12px;border-radius:6px;
+  background:#dcfce7;color:#166534;display:none}
 
-/* ── RECORDS ── */
-.records-top { display: flex; align-items: center; justify-content: space-between;
-               padding: 14px 20px; border-bottom: 2px solid #e8ecf5; }
-.records-top h2 { font-size: 14px; font-weight: 700; color: #0a2463; }
-.badge { background: #3b82c4; color: #fff; border-radius: 20px;
-         padding: 2px 10px; font-size: 11.5px; font-weight: 700; }
-.search-bar { padding: 11px 18px; background: #f5f7fb; border-bottom: 1px solid #e0e8f5; }
-.search-bar input { width: 100%; max-width: 400px; padding: 8px 12px;
-  border: 1.5px solid #c8d6e8; border-radius: 7px; font-size: 12.5px; }
-.tbl-wrap { overflow-x: auto; }
-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
-thead th { background: #0a2463; color: #fff; padding: 9px 13px;
-           text-align: left; white-space: nowrap; }
-tbody tr:hover { background: #f0f6ff; }
-tbody td { padding: 8px 13px; border-bottom: 1px solid #eef0f5; white-space: nowrap; }
-.no-data { text-align: center; color: #aaa; padding: 38px; font-size: 13px; }
-.type-badge { display: inline-block; padding: 2px 8px; border-radius: 4px;
-              font-size: 10.5px; font-weight: 700; }
-.type-pm { background: #dbeafe; color: #1e40af; }
-.type-z  { background: #d1fae5; color: #065f46; }
-.type-cgm{ background: #fef3c7; color: #92400e; }
+/* ── TABLES ── */
+.atbl{width:100%;border-collapse:collapse;font-size:12.5px}
+.atbl th{background:var(--blue);color:#fff;padding:8px 12px;text-align:left}
+.atbl td{padding:7px 12px;border-bottom:1px solid #eef0f5}
+.atbl tr:hover td{background:#f5f8ff}
 
-#toast {
-  position: fixed; bottom: 28px; right: 28px;
-  background: #16a34a; color: #fff; padding: 12px 20px;
-  border-radius: 10px; font-size: 13.5px; font-weight: 600;
-  box-shadow: 0 4px 16px rgba(0,0,0,.2); display: none; z-index: 9999;
-}
-#toast.err { background: #dc2626; }
+.tbl-wrap{overflow-x:auto}
+table.rtbl{width:100%;border-collapse:collapse;font-size:12.5px}
+table.rtbl thead th{background:var(--blue);color:#fff;padding:8px 12px;text-align:left;white-space:nowrap}
+table.rtbl tbody tr:hover{background:#f0f6ff}
+table.rtbl tbody td{padding:7px 12px;border-bottom:1px solid #eef0f5;white-space:nowrap}
+.no-data{text-align:center;color:#aaa;padding:36px;font-size:13px}
 
-/* Z-Estimate extra fields toggle */
-.z-only { display: none; }
-.z-visible .z-only { display: block; }
-.z-visible-grid .z-only { display: contents; }
+.rbadge{background:var(--accent);color:#fff;border-radius:20px;
+  padding:2px 9px;font-size:11.5px;font-weight:700}
+.badge-rm{background:#dbeafe;color:#1e40af;padding:2px 7px;border-radius:4px;
+  font-size:11px;font-weight:700;white-space:nowrap}
+.badge-td{background:#d1fae5;color:#065f46;padding:2px 7px;border-radius:4px;
+  font-size:11px;font-weight:700;white-space:nowrap}
+
+#toast{position:fixed;bottom:26px;right:26px;background:var(--green);color:#fff;
+  padding:11px 18px;border-radius:9px;font-size:13px;font-weight:600;
+  box-shadow:0 4px 16px rgba(0,0,0,.2);display:none;z-index:9999}
+#toast.err{background:var(--red)}
+#toast.info{background:var(--mid)}
+
+.rec-top{display:flex;align-items:center;justify-content:space-between;
+  padding:13px 18px;border-bottom:2px solid #e0e8f5}
+.rec-top h2{font-size:14px;font-weight:700;color:var(--blue)}
+
+.progress-bar{width:100%;height:8px;background:#e0e8f5;border-radius:4px;margin-top:8px;overflow:hidden}
+.progress-fill{height:100%;background:var(--green);border-radius:4px;transition:width .3s}
 </style>
 </head>
 <body>
@@ -149,799 +134,1121 @@ tbody td { padding: 8px 13px; border-bottom: 1px solid #eef0f5; white-space: now
 <header>
   <div class="logo">⚡</div>
   <div>
-    <h1>TGSPDCL – SCADA Circle | Estimate Sanction Document Generator</h1>
-    <p>PM Order Memo · Z-Estimate Memo · CGM Letter &nbsp;|&nbsp; Records saved locally on this computer</p>
+    <h1>TGSPDCL – SCADA Circle | Estimate Sanction Generator</h1>
+    <p>Firebase: estimatesscada &nbsp;|&nbsp; PM Order · Z-Estimate · CGM Letter</p>
   </div>
+  <div id="fb-pill">⚪ Not Connected</div>
 </header>
 
 <div class="tabs">
-  <div class="tab active" onclick="switchTab('entry')">📝 New Document</div>
-  <div class="tab" onclick="switchTab('records')">📋 Saved Records</div>
+  <div class="tab active" onclick="sw('doc')">📝 New Document</div>
+  <div class="tab" onclick="sw('master')">🗃️ Master Data</div>
+  <div class="tab" onclick="sw('records')">📋 Records</div>
+  <div class="tab" onclick="sw('setup')">🔧 Firebase Setup</div>
 </div>
 
-<!-- ═══ ENTRY PAGE ═══ -->
-<div class="page active" id="page-entry">
+<!-- ════════════════════════════ NEW DOCUMENT ════════════════════════════ -->
+<div class="page active" id="page-doc">
 
-  <!-- Document Type -->
-  <div class="doc-type-row" id="dtype-row">
-    <div class="dtype-btn active" onclick="setDocType('PM')" id="btn-PM">
-      <div class="icon">📋</div>
-      <div class="label">PM Order Sanction</div>
-      <div class="desc">Memo.No. SE/SCADA → DE/Lines</div>
-    </div>
-    <div class="dtype-btn" onclick="setDocType('Z')" id="btn-Z">
-      <div class="icon">📐</div>
-      <div class="label">Z-Estimate Sanction</div>
-      <div class="desc">Z-Estimate with G & N amounts</div>
-    </div>
-    <div class="dtype-btn" onclick="setDocType('CGM')" id="btn-CGM">
-      <div class="icon">✉️</div>
-      <div class="label">CGM Letter</div>
-      <div class="desc">Lr.No. SE/SCADA → CE/Metro Zone</div>
-    </div>
+  <div id="no-fb-warn" style="background:#fef3c7;border:1.5px solid #f59e0b;border-radius:9px;
+    padding:11px 16px;margin-bottom:12px;font-size:12.5px;display:flex;align-items:center;gap:10px">
+    ⚠️ Firebase not connected yet. 
+    <span style="font-weight:700;cursor:pointer;text-decoration:underline;margin-left:4px"
+      onclick="sw('setup')">Go to Firebase Setup →</span>
   </div>
 
-  <!-- MEMO DETAILS -->
+  <div class="doc-types">
+    <div class="dt-btn active" onclick="setDT('PM')" id="btn-PM">
+      <div class="ico">📋</div><div class="lbl">PM Order Memo</div>
+      <div class="sub">Sanction Accorded</div></div>
+    <div class="dt-btn" onclick="setDT('Z')" id="btn-Z">
+      <div class="ico">📐</div><div class="lbl">Z-Estimate Memo</div>
+      <div class="sub">G &amp; N Amounts</div></div>
+    <div class="dt-btn" onclick="setDT('CGM')" id="btn-CGM">
+      <div class="ico">✉️</div><div class="lbl">CGM Letter</div>
+      <div class="sub">To CE/Metro Zone</div></div>
+  </div>
+
   <div class="card">
-    <div class="card-title">🏷️ Memo / Letter Reference</div>
+    <div class="ct">🏷️ Memo Reference</div>
     <div class="grid g4">
-      <div class="field">
-        <label>D.No. (Document Number) *</label>
-        <input id="d_no" type="text" placeholder="e.g. 19919">
-      </div>
-      <div class="field">
-        <label>Financial Year (short) *</label>
-        <input id="fy_short" type="text" placeholder="e.g. 25-26" value="25-26">
-      </div>
-      <div class="field">
-        <label>Financial Year (full) *</label>
-        <input id="fy_full" type="text" placeholder="e.g. 2025-2026" value="2025-2026">
-      </div>
-      <div class="field">
-        <label>Memo / Letter Date *</label>
-        <input id="memo_date" type="date">
-      </div>
+      <div class="field"><label>D.No. *</label><input id="d_no" placeholder="e.g. 183"></div>
+      <div class="field"><label>FY Short *</label><input id="fy_s" value="26-27"></div>
+      <div class="field"><label>FY Full *</label><input id="fy_f" value="2026-2027"></div>
+      <div class="field"><label>Date *</label><input id="memo_date" type="date"></div>
     </div>
   </div>
 
-  <!-- SUBJECT / WORK -->
   <div class="card">
-    <div class="card-title">📌 Subject (Work Description)</div>
-    <div class="field">
+    <div class="ct">📍 Division → Sub-Division → Section → Officers</div>
+    <div class="grid g3">
+      <div class="field"><label>Division *</label>
+        <select id="sel_div" onchange="onDiv()">
+          <option value="">-- Select Division --</option></select></div>
+      <div class="field"><label>Sub-Division *</label>
+        <select id="sel_sub" onchange="onSubDiv()">
+          <option value="">-- Select Sub-Div --</option></select></div>
+      <div class="field"><label>Section *</label>
+        <select id="sel_sec" onchange="onSec()">
+          <option value="">-- Select Section --</option></select></div>
+    </div>
+    <div class="grid g3" style="margin-top:10px">
+      <div class="field"><label>AE(T) Officer</label>
+        <input id="f_ae" readonly placeholder="Auto from section"></div>
+      <div class="field"><label>ADE(T) Officer</label>
+        <input id="f_ade" readonly placeholder="Auto from section"></div>
+      <div class="field"><label>DE(T) Officer</label>
+        <input id="f_de" readonly placeholder="Auto from section"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="ct">⚙️ Estimate Type &amp; Work Description</div>
+    <div class="grid g3">
+      <div class="field"><label>Estimate Category</label>
+        <select id="sel_cat" onchange="filterPM()">
+          <option value="">-- All --</option>
+          <option value="R&M">R&amp;M</option>
+          <option value="T&D">T&amp;D</option></select></div>
+      <div class="field"><label>PM Order Type *</label>
+        <select id="sel_pm"><option value="">-- Select --</option></select></div>
+      <div class="field"><label>Works Budget Type *</label>
+        <select id="works_type">
+          <option value="O&M">O&amp;M</option>
+          <option value="T&D">T&amp;D</option>
+          <option value="R&M">R&amp;M</option></select></div>
+    </div>
+    <div class="field" style="margin-top:10px">
       <label>Work Description (Sub line) *</label>
       <textarea id="work_desc" rows="3"
-        placeholder="e.g. Replacement of 1 No. Sick 33 KV Chanchalguda incoming VCB at 33/11KV Asmangadh Sub-Station in Lines Malakpet section of Lines-VIII, Malakpet Sub-Division"></textarea>
-      <small>This fills the Sub: line exactly as typed</small>
-    </div>
-    <div class="grid g3" style="margin-top:12px">
-      <div class="field">
-        <label>Division (DE/Lines) *</label>
-        <select id="division" onchange="onDivisionChange()">
-          <option value="">-- Select --</option>
-          <option value="Banjara Hills">Banjara Hills</option>
-          <option value="South">South</option>
-          <option value="Central">Central</option>
-          <option value="Secunderabad">Secunderabad</option>
-        </select>
-      </div>
-      <div class="field">
-        <label>Sub-Division</label>
-        <input id="subdivision" type="text" placeholder="e.g. Malakpet">
-      </div>
-      <div class="field">
-        <label>Section</label>
-        <input id="section" type="text" placeholder="e.g. Malakpet">
-      </div>
+        placeholder="e.g. Rectification of 33 KV feeder break down by providing of 1 No. Straight through joint kit on 33KV Balkampet-Allwyn feeder on 13.03.2026 at 13:26 Hrs near 33/11 KV Allwyn SS in Lines Allwyn Section of Lines Allwyn Sub-Division"></textarea>
     </div>
   </div>
 
-  <!-- REFERENCES -->
   <div class="card">
-    <div class="card-title">🔗 Reference Details (Ref 5 & 6)</div>
-    <div class="sec-label">Ref 5 – Lines Letter</div>
-    <div class="grid g3">
-      <div class="field">
-        <label>Lines Lr.No. prefix (auto-filled)</label>
-        <input id="lr_prefix" type="text" readonly placeholder="Auto from Division">
-      </div>
-      <div class="field">
-        <label>F.No. (File No.)</label>
-        <input id="f_no" type="text" placeholder="leave blank if none">
-      </div>
-      <div class="field">
-        <label>Lines D.No. *</label>
-        <input id="lines_dno" type="text" placeholder="e.g. 2124/25-26">
-      </div>
+    <div class="ct">🔗 Reference Details (Ref 5 &amp; 6)</div>
+    <div class="grid g4">
+      <div class="field"><label>Lr.No. Prefix</label>
+        <input id="lr_prefix" readonly placeholder="Auto from Division"></div>
+      <div class="field"><label>F.No.</label>
+        <input id="f_no" placeholder="(blank if none)" oninput="asmLr()"></div>
+      <div class="field"><label>Lines D.No. *</label>
+        <input id="lines_dno" placeholder="e.g. 183/25-26" oninput="asmLr()"></div>
+      <div class="field"><label>Lines Lr. Date *</label>
+        <input id="lines_date" type="date" onchange="asmLr()"></div>
     </div>
     <div class="grid g2" style="margin-top:10px">
-      <div class="field">
-        <label>Full Lines Lr.No. (editable – auto-assembled)</label>
-        <input id="lines_lr_full" type="text" placeholder="Auto-assembled or type manually">
-        <small>Edit directly if the auto-assembled version is wrong</small>
-      </div>
-      <div class="field">
-        <label>Lines Lr. Date *</label>
-        <input id="lines_date" type="date" onchange="assembleLr()">
-      </div>
-    </div>
-    <div class="sec-label">Ref 6 – Estimate</div>
-    <div class="grid g2">
-      <div class="field">
-        <label id="est_label">Estimate No. (SAP PM Order No.) *</label>
-        <input id="estimate_no" type="text" placeholder="e.g. 970000019919 or Y-2025-15-01-30-01-002">
-      </div>
-      <div class="field z-only" id="z-ref-prefix-field">
-        <label>Prefix for Z-Estimate</label>
-        <select id="z_prefix">
-          <option value="Z-Estimate No.">Z-Estimate No.</option>
-          <option value="SAP Estimate No.">SAP Estimate No.</option>
-        </select>
-      </div>
+      <div class="field"><label>Full Lr.No. (editable)</label>
+        <input id="lines_lr" placeholder="Auto-assembled"></div>
+      <div class="field"><label>Estimate No. *</label>
+        <input id="estimate_no" placeholder="e.g. 922000004372"></div>
     </div>
   </div>
 
-  <!-- AMOUNT -->
-  <div class="card" id="amount-card">
-    <div class="card-title">💰 Amount Details</div>
-    <div id="pm-amount-section">
+  <div class="card">
+    <div class="ct">💰 Amount</div>
+    <div class="grid g3" id="pm-amt">
+      <div class="field"><label>Amount (₹) *</label>
+        <input id="amount" type="number" oninput="calcAmt()"></div>
+      <div class="field"><label>Less Amount (₹)</label>
+        <input id="less_amt" type="number" placeholder="0"></div>
+      <div class="field"><label>Amount in Words *</label>
+        <input id="in_words" placeholder="Rupees ... Only (auto)"></div>
+    </div>
+    <div class="grid g4" id="z-amt" style="display:none">
+      <div class="field"><label>Gross [G] (₹) *</label>
+        <input id="amt_g" type="number" oninput="calcZ()"></div>
+      <div class="field"><label>Net [N] (₹) *</label>
+        <input id="amt_n" type="number" oninput="calcZ()"></div>
+      <div class="field"><label>In Words [G]</label>
+        <input id="words_g" placeholder="auto"></div>
+      <div class="field"><label>In Words [N]</label>
+        <input id="words_n" placeholder="auto"></div>
+    </div>
+    <div id="sanction-row">
+      <div class="slabel">Sanction Registration</div>
       <div class="grid g3">
-        <div class="field">
-          <label>Amount (₹) *</label>
-          <input id="amount" type="number" placeholder="e.g. 882962" oninput="calcAmounts()">
-        </div>
-        <div class="field">
-          <label>Less Amount (₹) (if applicable)</label>
-          <input id="less_amt" type="number" placeholder="0" oninput="calcAmounts()">
-        </div>
-        <div class="field">
-          <label>Amount in Words *</label>
-          <input id="in_words" type="text" placeholder="Rupees ... Only (auto)">
-          <small>Auto-filled; edit if needed</small>
-        </div>
-      </div>
-    </div>
-    <div id="z-amount-section" class="z-only">
-      <div class="grid g4">
-        <div class="field">
-          <label>Gross Amount [G] (₹) *</label>
-          <input id="amount_g" type="number" placeholder="e.g. 183708" oninput="calcZAmounts()">
-        </div>
-        <div class="field">
-          <label>Net Amount [N] (₹) *</label>
-          <input id="amount_n" type="number" placeholder="e.g. 183708" oninput="calcZAmounts()">
-        </div>
-        <div class="field">
-          <label>Amount in Words [G] *</label>
-          <input id="in_words_g" type="text" placeholder="Rupees ... Only (auto)">
-        </div>
-        <div class="field">
-          <label>Amount in Words [N] *</label>
-          <input id="in_words_n" type="text" placeholder="Rupees ... Only (auto)">
-        </div>
-      </div>
-    </div>
-
-    <div id="sanction-section" class="pm-only">
-      <div class="sec-label">Sanction Registration</div>
-      <div class="grid g3">
-        <div class="field">
-          <label>Sanction No.</label>
-          <input id="sanction_no" type="text" placeholder="e.g. 1234">
-        </div>
-        <div class="field">
-          <label>Sanction Date</label>
-          <input id="sanction_date" type="date">
-        </div>
-        <div class="field">
-          <label>Budget / Works Type</label>
-          <select id="works_type">
-            <option value="T&D">T&amp;D</option>
-            <option value="O&M">O&amp;M</option>
-            <option value="Capital">Capital</option>
-          </select>
-        </div>
+        <div class="field"><label>Sanction No.</label>
+          <input id="sanc_no" placeholder="e.g. 1234"></div>
+        <div class="field"><label>Sanction Date</label>
+          <input id="sanc_date" type="date"></div>
+        <div class="field"><label>Account No.</label>
+          <input id="acct_no" value="74.1"></div>
       </div>
     </div>
   </div>
 
-  <!-- CGM EXTRA (only for CGM letter) -->
-  <div class="card cgm-only" id="cgm-card" style="display:none">
-    <div class="card-title">✉️ CGM Letter Specific</div>
+  <div class="card" id="cgm-card" style="display:none">
+    <div class="ct">✉️ CGM Letter – Extra Details</div>
     <div class="grid g2">
-      <div class="field">
-        <label>Consumer / Requestor Name</label>
-        <input id="consumer_name" type="text" placeholder="e.g. Mahaboob Miya, Executive Engineer-I, HRDCL">
-      </div>
-      <div class="field">
-        <label>Enclosure Description</label>
-        <input id="encl_desc" type="text" placeholder="e.g. Estimate" value="Estimate">
-      </div>
+      <div class="field"><label>Consumer / Requestor</label>
+        <input id="consumer" placeholder="Name and designation"></div>
+      <div class="field"><label>Enclosure</label>
+        <input id="encl" value="Estimate"></div>
     </div>
   </div>
 
-  <!-- BUTTONS -->
   <div class="btn-row">
-    <button class="btn btn-green" onclick="submitDoc()">💾 Save &amp; Download .docx</button>
-    <button class="btn btn-blue"  onclick="downloadOnly()">📄 Download .docx Only</button>
-    <button class="btn btn-gray"  onclick="clearForm()">🔄 Clear Form</button>
+    <button class="btn b-green" onclick="submitDoc()">💾 Save &amp; Download .docx</button>
+    <button class="btn b-blue"  onclick="dlOnly()">📄 Download Only</button>
+    <button class="btn b-gray"  onclick="clearForm()">🔄 Clear Form</button>
   </div>
 </div>
 
-<!-- ═══ RECORDS PAGE ═══ -->
-<div class="page" id="page-records">
-  <div class="card" style="padding:0;overflow:hidden">
-    <div class="records-top">
-      <h2>Saved Records &nbsp;<span class="badge" id="count-badge">0</span></h2>
-      <div style="display:flex;gap:8px">
-        <button class="btn btn-blue" style="font-size:11.5px;padding:7px 14px" onclick="exportCSV()">⬇ Export CSV</button>
-        <button class="btn btn-red" onclick="clearAll()">🗑 Clear All</button>
-      </div>
+<!-- ════════════════════════════ MASTER DATA ════════════════════════════ -->
+<div class="page" id="page-master">
+
+  <!-- SEED PANEL -->
+  <div class="seed-panel">
+    <h3>🚀 One-Click Data Seeding</h3>
+    <p>Seed your complete Division → Sub-Division → Section hierarchy (23 entries from your Excel) 
+       and all 80+ PM Order types to Firebase in one click. <b>Do this once after connecting Firebase.</b></p>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <button class="btn b-amber" onclick="seedAll()">⬆ Seed Hierarchy + PM Orders to Firebase</button>
+      <button class="btn b-gray" onclick="loadLocalOnly()">📥 Load Locally (no Firebase)</button>
     </div>
-    <div class="search-bar">
-      <input type="text" id="search-input" placeholder="🔍 Search by Estimate No, Division, Work Description..." oninput="renderTable()">
+    <div id="seed-status" class="seed-status"></div>
+    <div class="progress-bar" id="prog-bar" style="display:none">
+      <div class="progress-fill" id="prog-fill" style="width:0%"></div>
     </div>
-    <div class="tbl-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th>#</th>
-            <th>Type</th>
-            <th>Date</th>
-            <th>D.No.</th>
-            <th>Estimate No.</th>
-            <th>Division</th>
-            <th>Sub-Div</th>
-            <th>Amount (₹)</th>
-            <th>Saved On</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody id="records-tbody"></tbody>
+  </div>
+
+  <!-- DIVISION LIST -->
+  <div class="card">
+    <div class="ct">🏢 Divisions
+      <span style="margin-left:auto;font-size:12px;color:#888" id="div-count"></span></div>
+    <div id="div-list"><p style="color:#aaa;font-size:12.5px">Loading...</p></div>
+  </div>
+
+  <!-- SECTIONS TABLE -->
+  <div class="card">
+    <div class="ct">📂 Sections &amp; Officers
+      <span style="margin-left:auto;font-size:12px;color:#888" id="sec-count"></span></div>
+    <div class="field" style="max-width:400px;margin-bottom:10px">
+      <input type="text" id="sec-filter" placeholder="🔍 Filter by division/section..."
+        oninput="renderSecTable()" style="padding:7px 11px;border:1.5px solid #cdd6e6;
+        border-radius:7px;font-size:13px;background:#f8fafc;width:100%">
+    </div>
+    <div class="tbl-wrap" style="max-height:400px;overflow-y:auto">
+      <table class="atbl">
+        <thead><tr><th>Division</th><th>Sub-Division</th><th>Section</th>
+          <th>AE(T)</th><th>ADE(T)</th><th>DE(T)</th><th></th></tr></thead>
+        <tbody id="sec-tbody"></tbody>
+      </table>
+    </div>
+    <!-- ADD SECTION ROW -->
+    <div class="slabel" style="margin-top:16px">Add / Edit Section Officers</div>
+    <div class="grid g3">
+      <div class="field"><label>Division</label>
+        <select id="add_div" onchange="loadAddSubDivs()">
+          <option value="">-- Select --</option></select></div>
+      <div class="field"><label>Sub-Division</label>
+        <select id="add_sub"><option value="">-- Select --</option></select></div>
+      <div class="field"><label>Section Name</label>
+        <input id="add_sec" placeholder="e.g. Allwyn"></div>
+    </div>
+    <div class="grid g3" style="margin-top:10px">
+      <div class="field"><label>AE(T) Officer</label>
+        <input id="add_ae" placeholder="Full name"></div>
+      <div class="field"><label>ADE(T) Officer</label>
+        <input id="add_ade" placeholder="Full name"></div>
+      <div class="field"><label>DE(T) Officer</label>
+        <input id="add_de" placeholder="Full name"></div>
+    </div>
+    <button class="btn b-green" style="margin-top:10px" onclick="addSection()">
+      + Add / Update Section</button>
+  </div>
+
+  <!-- PM ORDERS -->
+  <div class="card">
+    <div class="ct">📋 PM Order Types
+      <span style="margin-left:auto;font-size:12px;color:#888" id="pm-count"></span></div>
+    <input type="text" id="pm-filter" placeholder="🔍 Search PM orders..."
+      oninput="renderPMTable()"
+      style="width:100%;max-width:380px;padding:7px 11px;border:1.5px solid #cdd6e6;
+      border-radius:7px;font-size:13px;background:#f8fafc;margin-bottom:10px">
+    <div class="tbl-wrap" style="max-height:360px;overflow-y:auto">
+      <table class="atbl">
+        <thead><tr><th>Type</th><th>Order Code</th><th>Name</th></tr></thead>
+        <tbody id="pm-tbody"></tbody>
       </table>
     </div>
   </div>
 </div>
 
+<!-- ════════════════════════════ RECORDS ════════════════════════════ -->
+<div class="page" id="page-records">
+  <div class="card" style="padding:0;overflow:hidden">
+    <div class="rec-top">
+      <h2>Saved Records &nbsp;<span class="rbadge" id="cnt">0</span></h2>
+      <div style="display:flex;gap:8px">
+        <button class="btn b-blue" style="font-size:11.5px;padding:7px 13px" onclick="expCSV()">⬇ CSV</button>
+        <button class="btn b-red" onclick="clrAll()">🗑 Clear All</button>
+      </div>
+    </div>
+    <div style="padding:10px 16px;background:#f5f7fb;border-bottom:1px solid #e0e8f5">
+      <input type="text" id="rec-q" placeholder="🔍 Search..."
+        oninput="renderRec()"
+        style="width:100%;max-width:380px;padding:7px 11px;border:1.5px solid #c8d6e8;
+        border-radius:7px;font-size:12.5px">
+    </div>
+    <div class="tbl-wrap">
+      <table class="rtbl">
+        <thead><tr><th>#</th><th>Type</th><th>Date</th><th>D.No.</th>
+          <th>Estimate No.</th><th>Division</th><th>Sub-Div</th><th>Section</th>
+          <th>Amount</th><th>Saved</th><th>Actions</th></tr></thead>
+        <tbody id="rec-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════ FIREBASE SETUP ════════════════════════════ -->
+<div class="page" id="page-setup">
+
+  <!-- Step cards -->
+  <div class="step-grid">
+    <div class="step-box">
+      <h3><div class="step-num">1</div>Open Firebase Console</h3>
+      <p>Go to <a href="https://console.firebase.google.com/u/0/project/estimatesscada" target="_blank"
+        style="color:var(--mid);font-weight:700">console.firebase.google.com</a><br>
+        Your project: <code>ESTIMATESSCADA</code> (ID: <code>estimatesscada</code>) is already created ✅</p>
+    </div>
+    <div class="step-box">
+      <h3><div class="step-num">2</div>Register a Web App</h3>
+      <p>In Project Settings → <b>Your apps</b> section<br>
+        Click the <code>&lt;/&gt;</code> (Web) icon → Register app<br>
+        App nickname: <code>estimate-tool</code> → Register</p>
+    </div>
+    <div class="step-box">
+      <h3><div class="step-num">3</div>Copy Firebase Config</h3>
+      <p>After registering, you'll see a <code>firebaseConfig</code> object.<br>
+        Copy the values: <code>apiKey</code>, <code>authDomain</code>, <code>appId</code> etc.<br>
+        Paste them in the fields below.</p>
+    </div>
+    <div class="step-box">
+      <h3><div class="step-num">4</div>Enable Firestore Database</h3>
+      <p>In Firebase Console sidebar → <b>Firestore Database</b><br>
+        Click <b>Create database</b> → Start in <b>test mode</b><br>
+        Choose region: <b>asia-south1</b> (Mumbai) → Enable</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="ct">🔥 Firebase Config – Project: estimatesscada</div>
+    <div class="grid g2">
+      <div class="field"><label>API Key *</label>
+        <input id="cfg_apiKey" placeholder="AIzaSy..."></div>
+      <div class="field"><label>Auth Domain</label>
+        <input id="cfg_authDomain" value="estimatesscada.firebaseapp.com"></div>
+      <div class="field"><label>Project ID *</label>
+        <input id="cfg_projectId" value="estimatesscada" readonly
+          style="background:#eff1f5;color:#666"></div>
+      <div class="field"><label>Storage Bucket</label>
+        <input id="cfg_storageBucket" value="estimatesscada.appspot.com"></div>
+      <div class="field"><label>Messaging Sender ID</label>
+        <input id="cfg_msgId" placeholder="From firebaseConfig object"></div>
+      <div class="field"><label>App ID *</label>
+        <input id="cfg_appId" placeholder="1:999986851450:web:..."></div>
+    </div>
+    <div class="btn-row">
+      <button class="btn b-green" onclick="saveFB()">🔥 Connect to Firebase</button>
+      <button class="btn b-red" onclick="clearFB()">✕ Disconnect</button>
+    </div>
+    <div id="fb-result" style="margin-top:12px;font-size:13px;font-weight:600"></div>
+  </div>
+</div>
+
 <div id="toast"></div>
 
+<!-- ═══════════════════════ EMBEDDED DATA ═══════════════════════ -->
 <script>
-// ═══════════════ GLOBALS ═══════════════
-const STORE = 'tgspdcl_v2_estimates';
-let docType = 'PM';
+// ── HIERARCHY (from your Excel image) ──
+const HIERARCHY = [
+  // [Division, Sub-Division, Section]
+  ['Banjara Hills','Allwyn','Allwyn'],
+  ['Banjara Hills','Allwyn','IDPL'],
+  ['Banjara Hills','Kalyan nagar','Kalyan nagar'],
+  ['Banjara Hills','Kalyan nagar','NIMS'],
+  ['Banjara Hills','Madhapur','Madhapur'],
+  ['Central','Asifnagar','Asif nagar'],
+  ['Central','Asifnagar','Gudimalkapur'],
+  ['Central','Asifnagar','Osmania Hospital'],
+  ['Central','Hussainsagar','Hussain sagar'],
+  ['Secunderabad','Nehrunagar','Bowenpally'],
+  ['Secunderabad','Nehrunagar','James street'],
+  ['Secunderabad','Nehrunagar','R.P.Nilayam'],
+  ['South','Chilkalguda','Chilkalguda'],
+  ['South','Chilkalguda','Industrial Area'],
+  ['South','Falaknuma','Falaknuma'],
+  ['South','Falaknuma','Salarjung'],
+  ['South','Malakpet','Malakpet'],
+  ['South','Malakpet','Santhosh nagar'],
+  ['Protection-I','MRT MADHAPUR','Protection Madhapur'],
+  ['Protection-I','MRT NORTH','Protection Kalyannagar'],
+  ['Protection-I','MRT CENTRAL','Protection Central'],
+  ['Protection-II','MRT SOUTH','Protection Malakpet'],
+  ['Protection-II','MRT SOUTH','Protection Chilkalguda'],
+];
 
-const DIV_LR_MAP = {
+const DIV_LR = {
   'Banjara Hills': 'DEE/Lines/Tech/Banjarahills',
   'South':         'DE/Lines South',
   'Central':       'DE/Lines Central',
   'Secunderabad':  'DE/Lines Secunderabad',
+  'Protection-I':  'ADE/MRT/SCADA',
+  'Protection-II': 'ADE/MRT/SCADA',
 };
 
-// ═══════════════ TAB ═══════════════
-function switchTab(tab) {
-  document.querySelectorAll('.tab').forEach((t, i) =>
-    t.classList.toggle('active', ['entry','records'][i] === tab));
-  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  document.getElementById('page-'+tab).classList.add('active');
-  if (tab === 'records') renderTable();
+// ── ALL PM ORDERS (80+) ──
+const PM_DATA = [
+{"est_type":"R&M","order_type":"PM11","name":"Repair of DTRs"},
+{"est_type":"R&M","order_type":"PM12","name":"Repair of PTR"},
+{"est_type":"R&M","order_type":"PM13","name":"Repair of CTPT"},
+{"est_type":"R&M","order_type":"PM14","name":"Repair of Breakers"},
+{"est_type":"R&M","order_type":"PM15","name":"Repair of Capacitor Banks"},
+{"est_type":"R&M","order_type":"PM16","name":"Repair of RMU's"},
+{"est_type":"R&M","order_type":"PM17","name":"Repair of Battery Charges"},
+{"est_type":"R&M","order_type":"PM18","name":"Repair of Other Protection Equipments"},
+{"est_type":"R&M","order_type":"PM19","name":"Repair of CT's"},
+{"est_type":"R&M","order_type":"PM21","name":"Repair of PT's"},
+{"est_type":"R&M","order_type":"PM22","name":"Breakdown Maintenance of 33 KV Lines"},
+{"est_type":"R&M","order_type":"PM23","name":"Breakdown Maintenance of 11 KV Lines"},
+{"est_type":"R&M","order_type":"PM24","name":"Breakdown Maintenance of LT Lines"},
+{"est_type":"R&M","order_type":"PM26","name":"Preventive Maintenance of DTR"},
+{"est_type":"R&M","order_type":"PM27","name":"Preventive Maintenance of PTR"},
+{"est_type":"R&M","order_type":"PM28","name":"Price Variation Order"},
+{"est_type":"R&M","order_type":"PM29","name":"Price Variation For PTR"},
+{"est_type":"R&M","order_type":"PM31","name":"Preventive Maintenance of Breakers"},
+{"est_type":"R&M","order_type":"PM33","name":"Overhauling of PTR"},
+{"est_type":"R&M","order_type":"PM34","name":"Preventive Maintenance of 33 KV Lines"},
+{"est_type":"R&M","order_type":"PM35","name":"Preventive Maintenance of 11 KV Lines"},
+{"est_type":"R&M","order_type":"PM36","name":"Preventive Maintenance of LT Lines"},
+{"est_type":"R&M","order_type":"PM37","name":"Preventive Maintenance of Substation Protection Equipments"},
+{"est_type":"R&M","order_type":"PM38","name":"Tree cutting of 33KV Feeder"},
+{"est_type":"R&M","order_type":"PM39","name":"Tree cutting of 11KV Feeder"},
+{"est_type":"R&M","order_type":"PM40","name":"Calibration Order"},
+{"est_type":"R&M","order_type":"PM41","name":"Tree cutting of LT Feeder"},
+{"est_type":"R&M","order_type":"PM42","name":"Hired Vehicle Order"},
+{"est_type":"R&M","order_type":"PM43","name":"Man Power Order"},
+{"est_type":"R&M","order_type":"PM44","name":"Order for Building Rents"},
+{"est_type":"R&M","order_type":"PM45","name":"Order for Office XEROX & Water"},
+{"est_type":"R&M","order_type":"PM46","name":"Shifting of Meters from inside to outside"},
+{"est_type":"R&M","order_type":"PM47","name":"Asset Dismantlement Order"},
+{"est_type":"R&M","order_type":"PM49","name":"PTR Movement & Erection"},
+{"est_type":"R&M","order_type":"PM50","name":"Survey Report Order"},
+{"est_type":"R&M","order_type":"PM54","name":"Drawal of Seal Bits"},
+{"est_type":"R&M","order_type":"PM55","name":"AMC for Capacitor Banks"},
+{"est_type":"R&M","order_type":"PM56","name":"Maintenance of 33/11 KV Substations"},
+{"est_type":"R&M","order_type":"PM57","name":"Restringing of Loose lines"},
+{"est_type":"R&M","order_type":"PM58","name":"Replacement of Damaged conductor/Cable"},
+{"est_type":"R&M","order_type":"PM59","name":"Rectification of Leaning poles"},
+{"est_type":"R&M","order_type":"PM5A","name":"Maintenance of PTRs (AMC)"},
+{"est_type":"R&M","order_type":"PM61","name":"AMC for SCADA Equipments"},
+{"est_type":"R&M","order_type":"PM62","name":"Painting of SS/Towers/Poles"},
+{"est_type":"R&M","order_type":"PM63","name":"Testing of relays"},
+{"est_type":"R&M","order_type":"PM64","name":"Maintenance of Department Vehicles"},
+{"est_type":"R&M","order_type":"PM66","name":"Net Metering Order"},
+{"est_type":"R&M","order_type":"PM67","name":"Sub-Transportation of PSCC Poles"},
+{"est_type":"R&M","order_type":"PM68","name":"Disaster Management Order"},
+{"est_type":"R&M","order_type":"PM69","name":"Other MRT Works"},
+{"est_type":"R&M","order_type":"PM70","name":"Replenishment Against SR"},
+{"est_type":"R&M","order_type":"PM72","name":"Safety Measures"},
+{"est_type":"R&M","order_type":"PM75","name":"Simplified Service Connection Order"},
+{"est_type":"R&M","order_type":"PM76","name":"Additional Load"},
+{"est_type":"R&M","order_type":"PM77","name":"Rolling Stock Order"},
+{"est_type":"R&M","order_type":"PM80","name":"Provisional Order (T.note order)"},
+{"est_type":"R&M","order_type":"PM81","name":"Palle Pragathi Works"},
+{"est_type":"R&M","order_type":"PM82","name":"Pattana Pragathi Works"},
+{"est_type":"R&M","order_type":"PM85","name":"Direct Acquisition Order"},
+{"est_type":"R&M","order_type":"PM86","name":"Providing of Static/Advanced Relays"},
+{"est_type":"R&M","order_type":"PM87","name":"AMC/FMS Charges"},
+{"est_type":"R&M","order_type":"PM88","name":"Festival Arrangements"},
+{"est_type":"R&M","order_type":"PM89","name":"Civil Works"},
+{"est_type":"R&M","order_type":"PM91","name":"Computer/Printer Spares & Repairs"},
+{"est_type":"R&M","order_type":"PM93","name":"DTR Structure Maintenance"},
+{"est_type":"R&M","order_type":"PM98","name":"Consultancy Charges"},
+{"est_type":"T&D","order_type":"985","name":"T&P Budgets"},
+{"est_type":"T&D","order_type":"970","name":"Replenishments"},
+{"est_type":"T&D","order_type":"T-2421","name":"Additional New PTR"},
+{"est_type":"T&D","order_type":"T-2422","name":"Enhancement of PTR"},
+{"est_type":"T&D","order_type":"T-2425","name":"11KV Erection of BAYS VCB"},
+{"est_type":"T&D","order_type":"T-2426","name":"33KV Erection of BAYS VCB"},
+{"est_type":"T&D","order_type":"T-2427","name":"33KV Feeder Erection"},
+{"est_type":"T&D","order_type":"T-2430","name":"Bifurcation of 33KV Lines"},
+{"est_type":"T&D","order_type":"T-2431","name":"33KV Interlinking Lines"},
+{"est_type":"T&D","order_type":"T-2436","name":"33KV Capacitor Banks Erection"},
+{"est_type":"T&D","order_type":"T-2438","name":"33KV Breaker Erection"},
+{"est_type":"T&D","order_type":"T-2440","name":"33KV RMU Erection"},
+{"est_type":"T&D","order_type":"T-2442","name":"RMU Shifting"},
+{"est_type":"T&D","order_type":"T-2443","name":"33KV Line Reconducting"},
+{"est_type":"T&D","order_type":"T-2447","name":"33/11KV SS Refurbishment"},
+{"est_type":"T&D","order_type":"T-2448","name":"Earthing of SS"},
+{"est_type":"T&D","order_type":"T-2449","name":"Additional Earthing"},
+{"est_type":"T&D","order_type":"T-2453","name":"33KV Intermediate Poles"},
+{"est_type":"T&D","order_type":"T-2455","name":"Power Evacuation Work"},
+{"est_type":"T&D","order_type":"T-2457","name":"PTR Plinth Erection"},
+{"est_type":"T&D","order_type":"T-2458","name":"AB Switch Rectification/Replacement"},
+{"est_type":"T&D","order_type":"T-2459","name":"HG Fuse Rectification/Replacement"},
+{"est_type":"T&D","order_type":"T-2461","name":"33KV Damaged Poles"},
+{"est_type":"T&D","order_type":"T-2464","name":"33KV Lines Shifting"},
+{"est_type":"T&D","order_type":"T-2469","name":"PTR Diversion SS"},
+];
+
+// ═══════════════════════════════════
+// STATE
+// ═══════════════════════════════════
+let db = null;
+let docType = 'PM';
+let allPM   = PM_DATA.slice();
+let allSecs = [];   // {div, sub, sec, ae, ade, de}
+const STORE = 'tgspdcl_v4';
+
+// Derive unique divs and subs from HIERARCHY
+const uniqDivs = [...new Set(HIERARCHY.map(h=>h[0]))];
+const uniqSubs = {};  // div → [subs]
+HIERARCHY.forEach(([d,s])=>{
+  if(!uniqSubs[d]) uniqSubs[d]=[];
+  if(!uniqSubs[d].includes(s)) uniqSubs[d].push(s);
+});
+
+// ═══════════════════════════════════
+// TABS
+// ═══════════════════════════════════
+function sw(t) {
+  document.querySelectorAll('.tab').forEach((el,i)=>
+    el.classList.toggle('active',['doc','master','records','setup'][i]===t));
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-'+t).classList.add('active');
+  if(t==='master'){renderAll();}
+  if(t==='records'){renderRec();}
 }
 
-// ═══════════════ DOC TYPE ═══════════════
-function setDocType(t) {
-  docType = t;
-  document.querySelectorAll('.dtype-btn').forEach(b => b.classList.remove('active'));
-  document.getElementById('btn-'+t).classList.add('active');
-
-  // Z-only fields
-  const isZ = t === 'Z';
-  const isCGM = t === 'CGM';
-  const isPM = t === 'PM';
-
-  document.querySelectorAll('.z-only').forEach(el => el.style.display = isZ ? '' : 'none');
-  document.getElementById('z-ref-prefix-field').style.display = isZ ? '' : 'none';
-  document.getElementById('cgm-card').style.display = isCGM ? '' : 'none';
-  document.getElementById('sanction-section').style.display = isCGM ? 'none' : '';
-
-  // Labels
-  document.getElementById('est_label').textContent = isZ
-    ? 'Z-Estimate No. *'
-    : (isCGM ? 'SAP Estimate No. *' : 'Estimate No. (SAP PM No.) *');
+// ═══════════════════════════════════
+// FIREBASE
+// ═══════════════════════════════════
+function saveFB() {
+  const cfg = {
+    apiKey:         v('cfg_apiKey'),
+    authDomain:     v('cfg_authDomain'),
+    projectId:      v('cfg_projectId'),
+    storageBucket:  v('cfg_storageBucket'),
+    messagingSenderId: v('cfg_msgId'),
+    appId:          v('cfg_appId'),
+  };
+  if (!cfg.apiKey || !cfg.appId) { toast('API Key and App ID are required',true); return; }
+  localStorage.setItem('fb_cfg', JSON.stringify(cfg));
+  connectFB(cfg);
+}
+function connectFB(cfg) {
+  try {
+    try { firebase.app().delete(); } catch(e){}
+    firebase.initializeApp(cfg);
+    db = firebase.firestore();
+    db.collection('_test').limit(1).get()
+      .then(()=>{ fbOK(true); loadFromFB(); })
+      .catch(e=>{ fbOK(false); setR('❌ '+e.message,'red'); });
+  } catch(e) { fbOK(false); setR('❌ '+e.message,'red'); }
+}
+function fbOK(ok) {
+  const p = document.getElementById('fb-pill');
+  p.textContent = ok ? '🟢 Connected' : '⚪ Not Connected';
+  p.className = ok ? 'ok' : '';
+  document.getElementById('no-fb-warn').style.display = ok ? 'none' : '';
+  if(ok) setR('✅ Firebase connected to estimatesscada!','green');
+}
+function clearFB() {
+  localStorage.removeItem('fb_cfg'); db=null; fbOK(false);
+  toast('Disconnected');
+}
+function setR(msg,color) {
+  const el = document.getElementById('fb-result');
+  el.textContent=msg; el.style.color=color==='green'?'#166534':'#b91c1c';
+}
+function loadFBSaved() {
+  const s = localStorage.getItem('fb_cfg');
+  if(!s) return;
+  const c = JSON.parse(s);
+  ['apiKey','authDomain','projectId','storageBucket','messagingSenderId','appId'].forEach(k=>{
+    const id='cfg_'+({'messagingSenderId':'msgId'}[k]||k);
+    const el=document.getElementById(id);
+    if(el) el.value=c[k]||el.value;
+  });
+  if(c.apiKey && c.appId) connectFB(c);
 }
 
-// ═══════════════ DIVISION AUTO-FILL ═══════════════
-function onDivisionChange() {
-  const div = document.getElementById('division').value;
-  const prefix = DIV_LR_MAP[div] || '';
-  document.getElementById('lr_prefix').value = prefix;
-  assembleLr();
-}
+// ═══════════════════════════════════
+// SEED ALL TO FIREBASE
+// ═══════════════════════════════════
+async function seedAll() {
+  if(!db){ toast('Connect Firebase first',true); return; }
+  if(!confirm(`Seed ${HIERARCHY.length} sections + ${PM_DATA.length} PM orders to Firebase?\nThis will overwrite existing data.`)) return;
 
-function assembleLr() {
-  const prefix = document.getElementById('lr_prefix').value;
-  const fno    = document.getElementById('f_no').value.trim();
-  const dno    = document.getElementById('lines_dno').value.trim();
-  const fy     = document.getElementById('fy_short').value.trim();
-  const dateV  = document.getElementById('lines_date').value;
+  showProg(true);
+  const total = HIERARCHY.length + PM_DATA.length;
+  let done=0;
 
-  if (!prefix) return;
-  let lr = prefix + '/F.' + (fno || '') + '/D.No.' + (dno || '___') + '/' + (fy || '__');
-  if (dateV) lr += ', Dt.' + fmtDate(dateV);
-  document.getElementById('lines_lr_full').value = lr;
-}
-
-// ═══════════════ AMOUNT → WORDS ═══════════════
-function numWords(n) {
-  if (!n || isNaN(n)) return '';
-  n = Math.round(Number(n));
-  const ones = ['','One','Two','Three','Four','Five','Six','Seven','Eight','Nine',
-    'Ten','Eleven','Twelve','Thirteen','Fourteen','Fifteen','Sixteen','Seventeen','Eighteen','Nineteen'];
-  const tens = ['','','Twenty','Thirty','Forty','Fifty','Sixty','Seventy','Eighty','Ninety'];
-  function w(num) {
-    if (num === 0) return '';
-    if (num < 20) return ones[num];
-    if (num < 100) return tens[Math.floor(num/10)] + (num%10 ? ' '+ones[num%10] : '');
-    return ones[Math.floor(num/100)]+' Hundred'+(num%100 ? ' '+w(num%100) : '');
+  function upProg() {
+    done++;
+    const pct = Math.round(done/total*100);
+    document.getElementById('prog-fill').style.width = pct+'%';
+    document.getElementById('seed-status').style.display='block';
+    document.getElementById('seed-status').textContent =
+      `Seeding... ${done}/${total} (${pct}%)`;
   }
-  let r='';
-  const cr   = Math.floor(n/10000000); n%=10000000;
-  const lakh = Math.floor(n/100000);   n%=100000;
-  const thou = Math.floor(n/1000);     n%=1000;
-  if (cr)   r += w(cr)   + ' Crore ';
-  if (lakh) r += w(lakh) + ' Lakh ';
-  if (thou) r += w(thou) + ' Thousand ';
-  if (n)    r += w(n);
-  return 'Rupees ' + r.trim() + ' Only';
+
+  // Batch write sections
+  const secBatch = db.batch();
+  HIERARCHY.forEach(([div,sub,sec])=>{
+    const id = (div+'-'+sub+'-'+sec).replace(/[^a-zA-Z0-9-]/g,'_');
+    const ref = db.collection('sections').doc(id);
+    secBatch.set(ref,{division:div,subdivision:sub,section:sec,ae:'',ade:'',de:''});
+    upProg();
+  });
+  await secBatch.commit();
+
+  // Batch write PM orders
+  const pmBatch = db.batch();
+  PM_DATA.forEach(p=>{
+    const ref = db.collection('pm_orders').doc(p.order_type.replace(/[^a-zA-Z0-9-]/g,'_'));
+    pmBatch.set(ref,p);
+    upProg();
+  });
+  await pmBatch.commit();
+
+  showProg(false);
+  document.getElementById('seed-status').textContent =
+    `✅ Done! ${HIERARCHY.length} sections + ${PM_DATA.length} PM orders seeded.`;
+  toast(`✅ All data seeded to Firebase!`);
+  await loadFromFB();
 }
 
-function calcAmounts() {
-  const a = parseFloat(document.getElementById('amount').value) || 0;
-  document.getElementById('in_words').value = a ? numWords(a) : '';
-}
-function calcZAmounts() {
-  const g = parseFloat(document.getElementById('amount_g').value) || 0;
-  const nv = parseFloat(document.getElementById('amount_n').value) || 0;
-  document.getElementById('in_words_g').value = g ? numWords(g) : '';
-  document.getElementById('in_words_n').value = nv ? numWords(nv) : '';
+function showProg(show) {
+  document.getElementById('prog-bar').style.display = show?'':'none';
+  if(!show) document.getElementById('prog-fill').style.width='100%';
 }
 
-// ═══════════════ DATE FORMAT ═══════════════
-function fmtDate(s) {
-  if (!s) return '___.___.______';
-  const [y,m,d] = s.split('-');
-  return `${d}.${m}.${y}`;
+async function loadFromFB() {
+  if(!db) return loadLocally();
+  try {
+    const [secs, pms] = await Promise.all([
+      db.collection('sections').get(),
+      db.collection('pm_orders').get(),
+    ]);
+    allSecs = secs.docs.map(d=>({id:d.id,...d.data()}));
+    if(pms.docs.length) allPM = pms.docs.map(d=>({id:d.id,...d.data()}));
+    populateFormDivs();
+    renderAll();
+    toast('Data loaded from Firebase');
+  } catch(e) { console.error(e); loadLocally(); }
 }
 
-// ═══════════════ COLLECT FORM DATA ═══════════════
-function collectData() {
-  const g = id => document.getElementById(id)?.value?.trim() || '';
+function loadLocalOnly() {
+  loadLocally();
+  toast('Loaded locally (no Firebase)');
+}
+function loadLocally() {
+  allSecs = HIERARCHY.map(([div,sub,sec])=>({division:div,subdivision:sub,section:sec,ae:'',ade:'',de:''}));
+  allPM   = PM_DATA.slice();
+  populateFormDivs();
+  renderAll();
+}
+
+// ═══════════════════════════════════
+// FORM – CASCADING DROPDOWNS
+// ═══════════════════════════════════
+function populateFormDivs() {
+  const s = document.getElementById('sel_div');
+  const c = s.value;
+  s.innerHTML = '<option value="">-- Select Division --</option>';
+  uniqDivs.forEach(d=>s.add(new Option(d,d)));
+  if(c) s.value=c;
+  // Admin dropdowns
+  ['add_div'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(!el) return;
+    el.innerHTML='<option value="">-- Select --</option>';
+    uniqDivs.forEach(d=>el.add(new Option(d,d)));
+  });
+}
+function onDiv() {
+  const div = v('sel_div');
+  document.getElementById('lr_prefix').value = DIV_LR[div]||'';
+  const ss = document.getElementById('sel_sub');
+  ss.innerHTML='<option value="">-- Select Sub-Div --</option>';
+  (uniqSubs[div]||[]).forEach(s=>ss.add(new Option(s,s)));
+  document.getElementById('sel_sec').innerHTML='<option value="">-- Select Section --</option>';
+  clearOff();
+  asmLr();
+}
+function onSubDiv() {
+  const div=v('sel_div'), sub=v('sel_sub');
+  const ss = document.getElementById('sel_sec');
+  ss.innerHTML='<option value="">-- Select Section --</option>';
+  const secs = allSecs.filter(s=>s.division===div && s.subdivision===sub);
+  const uniqSec=[...new Set(secs.map(s=>s.section))];
+  uniqSec.forEach(s=>ss.add(new Option(s,s)));
+  clearOff();
+}
+function onSec() {
+  const div=v('sel_div'),sub=v('sel_sub'),sec=v('sel_sec');
+  const found=allSecs.find(s=>s.division===div&&s.subdivision===sub&&s.section===sec);
+  document.getElementById('f_ae').value  = found?.ae ||'';
+  document.getElementById('f_ade').value = found?.ade||'';
+  document.getElementById('f_de').value  = found?.de ||'';
+}
+function clearOff(){['f_ae','f_ade','f_de'].forEach(id=>document.getElementById(id).value='');}
+
+function loadAddSubDivs() {
+  const div=document.getElementById('add_div').value;
+  const s=document.getElementById('add_sub');
+  s.innerHTML='<option value="">-- Select --</option>';
+  (uniqSubs[div]||[]).forEach(x=>s.add(new Option(x,x)));
+}
+
+// ═══════════════════════════════════
+// PM ORDER FILTER
+// ═══════════════════════════════════
+function filterPM() {
+  const cat=v('sel_cat');
+  const s=document.getElementById('sel_pm');
+  const c=s.value;
+  s.innerHTML='<option value="">-- Select --</option>';
+  (cat?allPM.filter(p=>p.est_type===cat):allPM)
+    .forEach(p=>s.add(new Option(`${p.order_type} – ${p.name}`,p.order_type)));
+  if(c) s.value=c;
+}
+
+// ═══════════════════════════════════
+// LR ASSEMBLY
+// ═══════════════════════════════════
+function asmLr() {
+  const prefix=v('lr_prefix'),fno=v('f_no'),dno=v('lines_dno'),fys=v('fy_s'),dt=v('lines_date');
+  if(!prefix) return;
+  let lr=prefix+'/F.'+(fno||'')+'/D.No.'+(dno||'___')+'/'+fys;
+  if(dt) lr+=',Dt.'+fmtD(dt);
+  document.getElementById('lines_lr').value=lr;
+}
+['f_no','lines_dno','fy_s'].forEach(id=>document.getElementById(id)?.addEventListener('input',asmLr));
+
+// ═══════════════════════════════════
+// AMOUNT → WORDS
+// ═══════════════════════════════════
+function numW(n){
+  if(!n||isNaN(n)) return '';
+  n=Math.round(+n);
+  const o=['','One','Two','Three','Four','Five','Six','Seven','Eight','Nine',
+    'Ten','Eleven','Twelve','Thirteen','Fourteen','Fifteen','Sixteen','Seventeen','Eighteen','Nineteen'];
+  const t=['','','Twenty','Thirty','Forty','Fifty','Sixty','Seventy','Eighty','Ninety'];
+  function w(x){
+    if(x===0) return '';
+    if(x<20)  return o[x];
+    if(x<100) return t[Math.floor(x/10)]+(x%10?' '+o[x%10]:'');
+    return o[Math.floor(x/100)]+' Hundred'+(x%100?' '+w(x%100):'');
+  }
+  let r='',cr=Math.floor(n/10000000);n%=10000000;
+  const lk=Math.floor(n/100000);n%=100000;
+  const th=Math.floor(n/1000);n%=1000;
+  if(cr)r+=w(cr)+' Crore ';if(lk)r+=w(lk)+' Lakh ';
+  if(th)r+=w(th)+' Thousand ';if(n)r+=w(n);
+  return 'Rupees '+r.trim()+' Only';
+}
+function calcAmt(){const a=+v('amount')||0;document.getElementById('in_words').value=a?numW(a):'';}
+function calcZ(){
+  const g=+v('amt_g')||0,n=+v('amt_n')||0;
+  document.getElementById('words_g').value=g?numW(g):'';
+  document.getElementById('words_n').value=n?numW(n):'';
+}
+
+// ═══════════════════════════════════
+// DOC TYPE
+// ═══════════════════════════════════
+function setDT(t){
+  docType=t;
+  document.querySelectorAll('.dt-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('btn-'+t).classList.add('active');
+  document.getElementById('z-amt').style.display=t==='Z'?'':'none';
+  document.getElementById('pm-amt').style.display=t==='Z'?'none':'';
+  document.getElementById('cgm-card').style.display=t==='CGM'?'':'none';
+  document.getElementById('sanction-row').style.display=t==='CGM'?'none':'';
+}
+
+// ═══════════════════════════════════
+// COLLECT / VALIDATE
+// ═══════════════════════════════════
+function collect(){
   return {
-    doc_type:    docType,
-    d_no:        g('d_no'),
-    fy_short:    g('fy_short'),
-    fy_full:     g('fy_full'),
-    memo_date:   g('memo_date'),
-    work_desc:   g('work_desc'),
-    division:    g('division'),
-    subdivision: g('subdivision'),
-    section:     g('section'),
-    lr_prefix:   g('lr_prefix'),
-    f_no:        g('f_no'),
-    lines_dno:   g('lines_dno'),
-    lines_lr_full: g('lines_lr_full'),
-    lines_date:  g('lines_date'),
-    estimate_no: g('estimate_no'),
-    z_prefix:    g('z_prefix') || 'Z-Estimate No.',
-    // PM/Z
-    amount:      g('amount'),
-    less_amt:    g('less_amt'),
-    in_words:    g('in_words'),
-    // Z only
-    amount_g:    g('amount_g'),
-    amount_n:    g('amount_n'),
-    in_words_g:  g('in_words_g'),
-    in_words_n:  g('in_words_n'),
-    // Sanction
-    sanction_no: g('sanction_no'),
-    sanction_date: g('sanction_date'),
-    works_type:  g('works_type') || 'T&D',
-    // CGM
-    consumer_name: g('consumer_name'),
-    encl_desc:   g('encl_desc') || 'Estimate',
-    saved_on:    new Date().toLocaleString('en-IN'),
+    doc_type:docType,
+    d_no:v('d_no'),fy_s:v('fy_s'),fy_f:v('fy_f'),memo_date:v('memo_date'),
+    division:v('sel_div'),subdivision:v('sel_sub'),section:v('sel_sec'),
+    ae:v('f_ae'),ade:v('f_ade'),de:v('f_de'),
+    est_cat:v('sel_cat'),pm_type:v('sel_pm'),works_type:v('works_type'),
+    work_desc:v('work_desc'),lr_prefix:v('lr_prefix'),
+    f_no:v('f_no'),lines_dno:v('lines_dno'),lines_date:v('lines_date'),
+    lines_lr:v('lines_lr'),estimate_no:v('estimate_no'),
+    amount:v('amount'),less_amt:v('less_amt'),in_words:v('in_words'),
+    amt_g:v('amt_g'),amt_n:v('amt_n'),words_g:v('words_g'),words_n:v('words_n'),
+    sanc_no:v('sanc_no'),sanc_date:v('sanc_date'),acct_no:v('acct_no')||'74.1',
+    consumer:v('consumer'),encl:v('encl')||'Estimate',
+    saved_on:new Date().toLocaleString('en-IN'), id:Date.now(),
   };
 }
-
-// ═══════════════ VALIDATE ═══════════════
-function validate(d) {
-  if (!d.d_no)        return 'D.No. is required';
-  if (!d.memo_date)   return 'Memo / Letter Date is required';
-  if (!d.work_desc)   return 'Work Description (Sub line) is required';
-  if (!d.division)    return 'Division is required';
-  if (!d.estimate_no) return 'Estimate No. is required';
-  if (d.doc_type === 'PM' || d.doc_type === 'Z') {
-    if (d.doc_type === 'PM' && !d.amount) return 'Amount is required';
-    if (d.doc_type === 'Z' && (!d.amount_g || !d.amount_n)) return 'Gross and Net amounts are required';
-  }
+function valid(d){
+  if(!d.d_no)       return 'D.No. is required';
+  if(!d.memo_date)  return 'Date is required';
+  if(!d.work_desc)  return 'Work Description is required';
+  if(!d.division)   return 'Division is required';
+  if(!d.estimate_no)return 'Estimate No. is required';
+  if(d.doc_type==='PM'&&!d.amount) return 'Amount is required';
+  if(d.doc_type==='Z'&&(!d.amt_g||!d.amt_n)) return 'G & N amounts required';
   return null;
 }
 
-// ═══════════════ BUILD DOCX ═══════════════
-async function buildDocx(d) {
-  const { Document, Paragraph, TextRun, AlignmentType, BorderStyle,
-          Table, TableRow, TableCell, WidthType, UnderlineType } = window.docx;
-
-  const FONT = 'Times New Roman';
-  const SZ_NORMAL = 24;  // 12pt
-  const SZ_BOLD   = 24;
-
-  const tr = (text, opts={}) => new TextRun({
-    text, font: FONT, size: opts.size || SZ_NORMAL,
-    bold: opts.bold || false, italics: opts.italic || false,
-    underline: opts.underline ? { type: UnderlineType.SINGLE } : undefined,
+// ═══════════════════════════════════
+// BUILD DOCX – exact proforma
+// ═══════════════════════════════════
+async function buildDocx(d){
+  const {Document,Paragraph,TextRun,AlignmentType,BorderStyle,
+         Table,TableRow,TableCell,WidthType,UnderlineType}=window.docx;
+  const F='Times New Roman',N=24;
+  const NB={top:{style:BorderStyle.NONE},bottom:{style:BorderStyle.NONE},
+            left:{style:BorderStyle.NONE},right:{style:BorderStyle.NONE}};
+  const tr=(text,o={})=>new TextRun({text,font:F,size:o.sz||N,
+    bold:!!o.b,italics:!!o.i,underline:o.u?{type:UnderlineType.SINGLE}:undefined});
+  const p=(ch,o={})=>new Paragraph({
+    children:Array.isArray(ch)?ch:[ch],
+    alignment:o.al||AlignmentType.LEFT,
+    spacing:{before:o.b||0,after:o.a||60},
+    indent:o.in?{left:o.in}:undefined,
   });
+  const blank=()=>p([tr('')],{a:60});
 
-  const p = (children, opts={}) => new Paragraph({
-    children: Array.isArray(children) ? children : [children],
-    alignment: opts.align || AlignmentType.LEFT,
-    spacing: { before: opts.before || 0, after: opts.after || 80 },
-    indent: opts.indent ? { left: opts.indent } : undefined,
-  });
-
-  const empty = () => p([tr('')], { after: 60 });
-
-  // TGSPDCL Header Table (logo row)
-  const headerTable = new Table({
-    width: { size: 100, type: WidthType.PERCENTAGE },
-    borders: { top:{style:BorderStyle.NONE}, bottom:{style:BorderStyle.NONE},
-               left:{style:BorderStyle.NONE}, right:{style:BorderStyle.NONE},
-               insideH:{style:BorderStyle.NONE}, insideV:{style:BorderStyle.NONE} },
-    rows: [new TableRow({ children: [
+  // Header table
+  const hdr=new Table({
+    width:{size:100,type:WidthType.PERCENTAGE},
+    borders:{top:NB.top,bottom:NB.bottom,left:NB.left,right:NB.right,
+             insideH:NB.top,insideV:NB.top},
+    rows:[new TableRow({children:[
       new TableCell({
-        children: [p([tr('⚡', {size:40})])],
-        width: { size: 800, type: WidthType.DXA },
-        borders: Object.fromEntries(['top','bottom','left','right'].map(k=>[k,{style:BorderStyle.NONE}])),
+        width:{size:1200,type:WidthType.DXA},
+        children:[p([tr('⚡',{sz:40})],{al:AlignmentType.CENTER})],
+        borders:{...NB,right:{style:BorderStyle.SINGLE,size:6,color:'003366'}},
       }),
       new TableCell({
-        children: [
-          p([tr('Southern Power Distribution Company of T.G. Ltd.', {bold:true, size:28})], {align:AlignmentType.CENTER}),
-          p([tr('"Electricity Saved is Electricity Produced"', {italic:true, size:22})], {align:AlignmentType.CENTER}),
+        children:[
+          p([tr('Southern Power Distribution Company of T.G. Ltd.',{b:true,sz:28})],
+            {al:AlignmentType.CENTER,a:20}),
+          p([tr('"Electricity Saved is Electricity Produced"',{i:true,sz:22})],
+            {al:AlignmentType.CENTER}),
         ],
-        borders: Object.fromEntries(['top','bottom','left','right'].map(k=>[k,{style:BorderStyle.SINGLE, size:4, color:'000000'}])),
+        borders:NB,
       }),
     ]})]
   });
 
-  // MEMO FORMAT (PM Order & Z-Estimate)
-  if (d.doc_type === 'PM' || d.doc_type === 'Z') {
-    const memoNo = `Memo.No.SE/SCADA/DE(T)/ADE(T&M)/AE(T)/F.No./D.No.${d.d_no}/${d.fy_short},Dt.${fmtDate(d.memo_date)}.`;
-    const ref5 = d.lines_lr_full || '___';
-    const ref6label = d.doc_type === 'Z' ? (d.z_prefix || 'Z-Estimate No.') : 'Estimate No.';
-    const deLines = `Divisional Engineer/Lines/${d.division}`;
-    const wtype = d.works_type;
-    const amtDisplay = d.doc_type === 'Z'
-      ? `Rs.${parseInt(d.amount_g).toLocaleString('en-IN')}/-[G] (${d.in_words_g}) & Rs.${parseInt(d.amount_n).toLocaleString('en-IN')}/-[N] (${d.in_words_n})`
-      : `Rs.${parseInt(d.amount).toLocaleString('en-IN')}/${d.in_words ? '-(' + d.in_words + ')' : ''}`;
+  const memoLine=d.doc_type==='CGM'
+    ?`Lr.No. SE/SCADA/DE(T)/ADE(T&M)/AE(T)/F.No./D.No.${d.d_no}/${d.fy_s}, Dt.${fmtD(d.memo_date)}.`
+    :`Memo.No.SE/SCADA/DE(T)/ADE(T&M)/AE(T)/F.No./D.No.${d.d_no}/${d.fy_s},Dt.${fmtD(d.memo_date)}.`;
+  const deLines=`Divisional Engineer/Lines/${d.division}`;
+  const wt=d.works_type||'O&M';
 
-    const sanctionLine = d.sanction_no
-      ? `The estimate is technically sanctioned and registered as sanction No.${d.sanction_no}/${d.fy_short} Dt.${fmtDate(d.sanction_date)} for the financial year ${d.fy_full}.`
-      : `The estimate is technically sanctioned and registered as sanction No.____________/${d.fy_short} Dt.____________ for the financial year ${d.fy_full}.`;
+  // Amount display runs (bold)
+  let amtRuns;
+  if(d.doc_type==='Z'){
+    amtRuns=[
+      tr('Rs.'+parseInt(d.amt_g).toLocaleString('en-IN')+'/-',{b:true}),
+      tr('[G] ('+d.words_g+') & '),
+      tr('Rs.'+parseInt(d.amt_n).toLocaleString('en-IN')+'/-',{b:true}),
+      tr('[N] ('+d.words_n+')',{b:true}),
+    ];
+  } else {
+    amtRuns=[
+      tr('Rs.'+parseInt(d.amount).toLocaleString('en-IN')+'/-(',{b:true}),
+      tr(d.in_words,{b:true}),
+      tr(')',{b:true}),
+    ];
+  }
 
-    const bodyBullet = (text) => p(
-      [tr('– ', {bold:false}), tr(text)],
-      { before: 80, after: 80, indent: 720 }
-    );
+  if(d.doc_type==='PM'||d.doc_type==='Z'){
+    const refP=(n,text)=>p([tr(`${n}) ${text}`)],{b:30,a:30,in:1080});
+    const bItem=(n,ch)=>new Paragraph({
+      children:[tr(`${n})  `),...(Array.isArray(ch)?ch:[tr(ch)])],
+      alignment:AlignmentType.JUSTIFIED,spacing:{before:80,after:80},
+      indent:{left:360},
+    });
+    const sLine=d.sanc_no
+      ?`The estimate is technically sanctioned and registered as sanction No.${d.sanc_no}/${d.fy_s} Dt.${fmtD(d.sanc_date)} for the financial year ${d.fy_f}.`
+      :`The estimate is technically sanctioned and registered as sanction No.____________/${d.fy_s} Dt.____________ for the financial year ${d.fy_f}.`;
 
-    const refPara = (num, text) => p(
-      [tr(`${num}) ${text}`)],
-      { before: 40, after: 40, indent: 1080 }
-    );
-
-    const children = [
-      headerTable,
-      empty(),
-      p([tr('Office of the', {size:22})], {align:AlignmentType.RIGHT, before:0, after:20}),
-      p([tr('Superintending Engineer,', {bold:true, size:22})], {align:AlignmentType.RIGHT, after:20}),
-      p([tr('SCADA Circle, TGSPDCL,', {size:22})], {align:AlignmentType.RIGHT, after:20}),
-      p([tr('GTS Colony,', {size:22})], {align:AlignmentType.RIGHT, after:20}),
-      p([tr('Hyderabad - 500 045.', {size:22})], {align:AlignmentType.RIGHT, after:80}),
-
-      p([tr(memoNo, {bold:true})], {before:80, after:80}),
-
-      p([tr('Sub:\t', {bold:true}), tr(`Elecy - SCADA - Hyd – ${d.work_desc} – Sanction – Accorded - Reg.`)],
-        {before:80, after:80}),
-
-      p([tr('Ref:  1) B.P.Ms.No. 58 Dt.03.02.64.', {size:SZ_NORMAL})], {before:60, after:30, indent:720}),
-      refPara(2, 'B.P.Ms.No.874 Dt.15.09.84'),
-      refPara(3, 'S.P.O.O(CGM-(O&M))Ms.No.844, Dt.22.12.2017.'),
-      refPara(4, 'Memo.No.CGM(O&M)/SE(O&M)/DE(O&M)-I/F.No.D.O.P/D.No.230/20, Dt.21.05.20'),
-      refPara(5, ref5),
-      refPara(6, `${ref6label} ${d.estimate_no}`),
-
-      p([tr('* * *')], {align:AlignmentType.CENTER, before:100, after:100}),
-
-      bodyBullet(`In exercise of powers delegated vide reference 1st cited above, the Superintending Engineer/SCADA hereby accords approval for the proposal submitted by the ${deLines} for ${d.work_desc} for an amount of ${amtDisplay} under ${wtype} works.`),
-
-      bodyBullet(`The expenditure is chargeable to ${wtype} (A/c. No.74.1) for the year ${d.fy_full}.`),
-
-      bodyBullet(sanctionLine),
-
-      bodyBullet(`The expenditure should be met from the provision available for ${wtype} works in the budget estimate and cash grants.`),
-
-      bodyBullet(`The work shall be taken up subject to the availability of budget provision for the financial year ${d.fy_full} and cash grants.`),
-
-      bodyBullet('The concerned officers will be held responsible for any wrong or excessive estimation.'),
-
-      empty(),
-
-      // Signature row
+    const children=[
+      hdr, blank(),
+      p([tr('Office of the',{sz:N})],{al:AlignmentType.RIGHT,a:20}),
+      p([tr('Superintending Engineer,',{b:true})],{al:AlignmentType.RIGHT,a:20}),
+      p([tr('SCADA Circle, TGSPDCL,')],{al:AlignmentType.RIGHT,a:20}),
+      p([tr('GTS Colony,')],{al:AlignmentType.RIGHT,a:20}),
+      p([tr('Hyderabad - 500 045.')],{al:AlignmentType.RIGHT,a:100}),
+      p([tr(memoLine,{b:true,u:true})],{b:80,a:100}),
+      p([tr('Sub:\t',{b:true}),
+         tr(`Elecy – SCADA – Hyd – ${d.work_desc} – Sanction – Accorded – Reg.`)],
+        {b:60,a:80,al:AlignmentType.JUSTIFIED}),
+      p([tr('Ref: 1) B.P.Ms.No. 58 Dt.03.02.64.')],{b:60,a:30,in:720}),
+      refP(2,'B.P.Ms.No.874 Dt.15.09.84'),
+      refP(3,'S.P.O.O(CGM-(O&M))Ms.No.844, Dt.22.12.2017.'),
+      refP(4,'Mem.No.CGM(O&M)/SE(O&M)/DE(O&M)-I/F.No.D.O.P/D.No.230/20, Dt. 21.05.20'),
+      refP(5,d.lines_lr||'___'),
+      refP(6,`${d.doc_type==='Z'?'Z-Estimate No.':'Estimate No.'} ${d.estimate_no}`),
+      p([tr('* * *')],{al:AlignmentType.CENTER,b:100,a:100}),
+      bItem(1,[tr(`In exercise of powers delegated vide reference 1`),
+               tr('st',{sz:18}),
+               tr(` cited above, the Superintending Engineer/SCADA hereby accords approval for the proposal submitted by the ${deLines} for ${d.work_desc} for an amount of `),
+               ...amtRuns,tr(` under `),tr(wt,{b:true}),tr(' works.')]),
+      bItem(2,[tr('The expenditure is chargeable to '),tr(wt,{b:true}),
+               tr(` (A/c. No.${d.acct_no||'74.1'}) for the year ${d.fy_f}.`)]),
+      bItem(3,[tr(sLine)]),
+      bItem(4,[tr('The expenditure should be met from the provision available for '),
+               tr(wt,{b:true}),tr(' works in the budget estimate and cash grants.')]),
+      bItem(5,[tr('The work shall be taken up subject to the availability of budget provision for the financial year '),
+               tr(d.fy_f,{b:true}),tr(' and cash grants.')]),
+      bItem(6,[tr('The concerned officers will be held responsible for any wrong or excessive estimation.')]),
+      blank(),
       new Table({
-        width: { size: 100, type: WidthType.PERCENTAGE },
-        borders: Object.fromEntries(['top','bottom','left','right','insideH','insideV'].map(k=>[k,{style:BorderStyle.NONE}])),
-        rows: [new TableRow({ children: [
+        width:{size:100,type:WidthType.PERCENTAGE},
+        borders:{top:NB.top,bottom:NB.bottom,left:NB.left,right:NB.right,
+                 insideH:NB.top,insideV:NB.top},
+        rows:[new TableRow({children:[
           new TableCell({
-            children: [p([tr('AE(T)         ADE(T)          DE(T)', {size:22})], {align:AlignmentType.LEFT})],
-            width: { size: 60, type: WidthType.PERCENTAGE },
-            borders: Object.fromEntries(['top','bottom','left','right'].map(k=>[k,{style:BorderStyle.NONE}])),
+            width:{size:60,type:WidthType.PERCENTAGE},
+            children:[p([tr(`AE(T)${d.ae?' ('+d.ae+')':''}     ADE(T)${d.ade?' ('+d.ade+')':''}     DE(T)${d.de?' ('+d.de+')':''}`)],{b:300})],
+            borders:NB,
           }),
           new TableCell({
-            children: [
-              p([tr('Superintending Engineer,', {bold:true})], {align:AlignmentType.RIGHT, after:20}),
-              p([tr('SCADA/Hyderabad.', {bold:true})], {align:AlignmentType.RIGHT}),
+            children:[
+              p([tr('Superintending Engineer,',{b:true})],{al:AlignmentType.RIGHT,a:20}),
+              p([tr('SCADA/Hyderabad.',{b:true})],{al:AlignmentType.RIGHT}),
             ],
-            borders: Object.fromEntries(['top','bottom','left','right'].map(k=>[k,{style:BorderStyle.NONE}])),
+            borders:NB,
           }),
         ]})]
       }),
-
-      empty(),
-
-      p([tr('To')], {before:120, after:30}),
-      p([tr(`\t\tThe ${deLines}`)], {after:30}),
-      empty(),
-      p([tr(`\t\tCopy to the Senior Accounts Officer/SCADA/Hyd`)], {after:30}),
-      p([tr('\t\tCopy Submitted to the Chief Engineer/Operation/Metro Zone/Mint Compound, Hyderabad.')], {after:30}),
+      blank(),
+      p([tr('To',{b:true})],{b:120,a:20}),
+      p([tr(`\tThe ${deLines}`)],{a:20}),
+      p([tr('\tCopy to the Senior Accounts Officer/SCADA/Hyd')],{a:20}),
+      p([tr('\tCopy Submitted to the Chief Engineer/Operation/Metro Zone/Mint Compound, Hyderabad.')]),
     ];
-
-    return new Document({
-      sections: [{
-        properties: {
-          page: {
-            size: { width: 11906, height: 16838 },
-            margin: { top: 1080, bottom: 1080, left: 1080, right: 1080 }
-          }
-        },
-        children
-      }]
-    });
+    return new Document({sections:[{
+      properties:{page:{size:{width:11906,height:16838},margin:{top:1080,bottom:1080,left:1080,right:1080}}},
+      children
+    }]});
   }
 
-  // CGM LETTER FORMAT
-  if (d.doc_type === 'CGM') {
-    const lrNo = `Lr.No. SE/SCADA/DE(T)/ADE(T&M)/AE(T)/F.No./D.No.${d.d_no}/${d.fy_short}, Dt.${fmtDate(d.memo_date)}.`;
-    const ref3 = d.lines_lr_full || '___';
-    const amtStr = d.amount
-      ? `Rs.${parseInt(d.amount).toLocaleString('en-IN')}/-${d.in_words ? '(' + d.in_words + ')' : ''}`
-      : '___';
+  // CGM LETTER
+  const fromTo=new Table({
+    width:{size:100,type:WidthType.PERCENTAGE},
+    borders:{top:NB.top,bottom:NB.bottom,left:NB.left,right:NB.right,insideH:NB.top,insideV:NB.top},
+    rows:[new TableRow({children:[
+      new TableCell({children:[p([tr('From',{b:true})],{a:30}),p([tr('The Superintending Engineer,',{b:true})],{a:20}),p([tr('SCADA/TGSPDCL,')],{a:20}),p([tr('GTS Colony, Erragadda,')],{a:20}),p([tr('Hyderabad.')])],borders:NB}),
+      new TableCell({children:[p([tr('To',{b:true})],{a:30}),p([tr('The Chief Engineer/Operation,',{b:true})],{a:20}),p([tr('Metro Zone, TGSPDCL,')],{a:20}),p([tr('Mint Compound,')],{a:20}),p([tr('Hyderabad.')])],borders:NB}),
+    ]})]
+  });
+  const cgmAmt=d.amount?[tr('Rs.'+parseInt(d.amount).toLocaleString('en-IN')+'/-(',{b:true}),tr(d.in_words,{b:true}),tr(')',{b:true})]:[tr('Rs.___/-')];
+  return new Document({sections:[{
+    properties:{page:{size:{width:11906,height:16838},margin:{top:1080,bottom:1080,left:1080,right:1080}}},
+    children:[
+      hdr,blank(),fromTo,blank(),
+      p([tr(memoLine,{b:true})],{b:60,a:80}),
+      p([tr('Sir,')],{b:60,a:80}),
+      p([tr('Sub:-\t',{b:true}),tr(`TGSPDCL – SCADA Circle – Hyd – Estimate for ${d.work_desc}${d.consumer?' on request of consumer '+d.consumer:''} – Submitted for Necessary Sanction – Reg.`)],{b:60,a:80,al:AlignmentType.JUSTIFIED}),
+      p([tr('Ref:-1) S.P.O.O.(CGM-(O&M))Ms. No.844, Dt.22.12.2017')],{b:60,a:30,in:720}),
+      p([tr('2) Memo.No.CGM(O&M)/SE(O&M)/DE(O&M)-I/F.No.D.O.P/D.No.230/20, Dt.21.05.20')],{a:30,in:1080}),
+      p([tr('3) '+d.lines_lr)],{a:30,in:1080}),
+      p([tr('4) SAP Estimate No.'+d.estimate_no)],{a:30,in:1080}),
+      p([tr('* * *')],{al:AlignmentType.CENTER,b:100,a:100}),
+      p([tr('\tThe estimate for '),...cgmAmt,tr(` for ${d.work_desc}${d.consumer?' on request of consumer '+d.consumer:''} is herewith submitted.`)],{b:80,a:80,al:AlignmentType.JUSTIFIED}),
+      p([tr('\t\tIt is requested to arrange to sanction the above estimate at the earliest please.')],{b:60,a:140}),
+      p([tr('Encl: 1) '+(d.encl||'Estimate'))],{b:60,a:200}),
+      p([tr('Yours Sincerely,',{b:true})],{al:AlignmentType.RIGHT,b:60,a:60}),
+      blank(),
+      p([tr('Superintending Engineer,',{b:true})],{a:20}),
+      p([tr('SCADA/Hyderabad.')],{a:80}),
+      p([tr('Copy to the '+deLines)],{b:80}),
+    ]
+  }]});
+}
 
-    const refPara = (num, text) => p(
-      [tr(`${num}) ${text}`)],
-      { before: 30, after: 30, indent: 900 }
-    );
+// ═══════════════════════════════════
+// SUBMIT / DOWNLOAD
+// ═══════════════════════════════════
+async function submitDoc(){
+  const d=collect(); const e=valid(d);
+  if(e){toast(e,true);return;}
+  const r=getRecs(); r.push(d); saveRecs(r);
+  await doDl(d); toast('✅ Saved & downloaded!');
+}
+async function dlOnly(){
+  const d=collect(); const e=valid(d);
+  if(e){toast(e,true);return;}
+  await doDl(d); toast('📄 Downloaded!');
+}
+async function doDl(d){
+  const doc=await buildDocx(d);
+  const blob=await window.docx.Packer.toBlob(doc);
+  const lbl={PM:'PM_Order',Z:'Z_Estimate',CGM:'CGM_Letter'}[d.doc_type]||'Doc';
+  saveAs(blob,`${lbl}_D${d.d_no}_${d.estimate_no}_${d.division}.docx`);
+}
 
-    const fromToTable = new Table({
-      width: { size: 100, type: WidthType.PERCENTAGE },
-      borders: Object.fromEntries(['top','bottom','left','right','insideH','insideV'].map(k=>[k,{style:BorderStyle.NONE}])),
-      rows: [new TableRow({ children: [
-        new TableCell({
-          children: [
-            p([tr('From')], {after:30}),
-            p([tr('The Superintending Engineer,', {bold:true})], {after:20}),
-            p([tr('SCADA/TGSPDCL,')], {after:20}),
-            p([tr('GTS Colony, Erragadda,')], {after:20}),
-            p([tr('Hyderabad.')], {after:20}),
-          ],
-          borders: Object.fromEntries(['top','bottom','left','right'].map(k=>[k,{style:BorderStyle.NONE}])),
-        }),
-        new TableCell({
-          children: [
-            p([tr('To')], {after:30}),
-            p([tr('The Chief Engineer/Operation,', {bold:true})], {after:20}),
-            p([tr('Metro Zone, TGSPDCL,')], {after:20}),
-            p([tr('Mint Compound,')], {after:20}),
-            p([tr('Hyderabad.')], {after:20}),
-          ],
-          borders: Object.fromEntries(['top','bottom','left','right'].map(k=>[k,{style:BorderStyle.NONE}])),
-        }),
-      ]})]
-    });
+// ═══════════════════════════════════
+// MASTER DATA RENDERS
+// ═══════════════════════════════════
+function renderAll(){
+  // Divisions
+  const divList=uniqDivs.map(d=>`
+    <tr><td><b>${d}</b></td><td>${DIV_LR[d]||'—'}</td>
+    <td>${(uniqSubs[d]||[]).join(', ')}</td></tr>`).join('');
+  document.getElementById('div-list').innerHTML=
+    `<table class="atbl"><thead><tr><th>Division</th><th>Lr.No. Prefix</th><th>Sub-Divisions</th></tr></thead>
+     <tbody>${divList}</tbody></table>`;
+  document.getElementById('div-count').textContent=`${uniqDivs.length} divisions`;
+  renderSecTable();
+  renderPMTable();
+  populateFormDivs();
+  filterPM();
+}
+function renderSecTable(){
+  const q=(document.getElementById('sec-filter')?.value||'').toLowerCase();
+  const rows=q?allSecs.filter(s=>[s.division,s.subdivision,s.section].join(' ').toLowerCase().includes(q)):allSecs;
+  document.getElementById('sec-count').textContent=`${allSecs.length} sections`;
+  document.getElementById('sec-tbody').innerHTML=rows.map(s=>`
+    <tr><td>${s.division}</td><td>${s.subdivision}</td><td><b>${s.section}</b></td>
+    <td>${s.ae||'<span style="color:#bbb">—</span>'}</td>
+    <td>${s.ade||'<span style="color:#bbb">—</span>'}</td>
+    <td>${s.de||'<span style="color:#bbb">—</span>'}</td>
+    <td><button class="btn b-red" onclick="editSec('${s.division}','${s.subdivision}','${s.section}')">✏</button></td>
+    </tr>`).join('')||'<tr><td colspan="7" class="no-data">No sections</td></tr>';
+}
+function editSec(div,sub,sec){
+  document.getElementById('add_div').value=div;
+  loadAddSubDivs();
+  setTimeout(()=>{
+    document.getElementById('add_sub').value=sub;
+    document.getElementById('add_sec').value=sec;
+    const found=allSecs.find(s=>s.division===div&&s.subdivision===sub&&s.section===sec);
+    if(found){
+      document.getElementById('add_ae').value=found.ae||'';
+      document.getElementById('add_ade').value=found.ade||'';
+      document.getElementById('add_de').value=found.de||'';
+    }
+  },50);
+  document.getElementById('add_sec').scrollIntoView({behavior:'smooth'});
+}
+function renderPMTable(){
+  const q=(document.getElementById('pm-filter')?.value||'').toLowerCase();
+  const rows=q?allPM.filter(p=>(p.order_type+p.name+p.est_type).toLowerCase().includes(q)):allPM;
+  document.getElementById('pm-count').textContent=`${allPM.length} types`;
+  document.getElementById('pm-tbody').innerHTML=rows.map(p=>
+    `<tr><td><span class="badge-${p.est_type==='T&D'?'td':'rm'}">${p.est_type}</span></td>
+     <td><b>${p.order_type}</b></td><td>${p.name}</td></tr>`
+  ).join('')||'<tr><td colspan="3" class="no-data">No data</td></tr>';
+}
 
-    const children = [
-      headerTable,
-      empty(),
-      fromToTable,
-      empty(),
-      p([tr(lrNo, {bold:true})], {before:80, after:80}),
-      p([tr('Sir,')], {before:60, after:80}),
-
-      p([tr('Sub:-\t'), tr(`TGSPDCL – SCADA Circle – Hyd – Estimate for ${d.work_desc}${d.consumer_name ? ' on request of consumer '+d.consumer_name : ''} – Submitted for Necessary Sanction – Reg.`)],
-        {before:60, after:80}),
-
-      p([tr('Ref:-1) S.P.O.O.(CGM-(O&M))Ms. No.844, Dt.22.12.2017')], {before:60, after:30, indent:720}),
-      refPara(2, 'Memo.No.CGM(O&M)/SE(O&M)/DE(O&M)-I/F.No.D.O.P/D.No.230/20, Dt.21.05.20'),
-      refPara(3, ref3),
-      refPara(4, `SAP Estimate No.${d.estimate_no}`),
-
-      p([tr('* * *')], {align:AlignmentType.CENTER, before:100, after:100}),
-
-      p([tr('\tThe estimate for '),
-         tr(amtStr, {bold:true}),
-         tr(` for ${d.work_desc}${d.consumer_name ? ' on request of consumer '+d.consumer_name : ''} is herewith submitted.`)
-        ], {before:80, after:80}),
-
-      p([tr('\t\tIt is requested to arrange to sanction the above estimate at the earliest please.')],
-        {before:60, after:120}),
-
-      p([tr('Encl: 1) ' + (d.encl_desc || 'Estimate'))], {before:80, after:180}),
-
-      p([tr('Yours Sincerely,', {bold:true})], {align:AlignmentType.RIGHT, before:80, after:60}),
-      empty(),
-      p([tr('Superintending Engineer,', {bold:true})], {after:20}),
-      p([tr('SCADA/Hyderabad.')], {after:80}),
-
-      p([tr(`Copy to the Divisional Engineer/Lines/${d.division}`)], {before:80, after:20}),
-    ];
-
-    return new Document({
-      sections: [{
-        properties: {
-          page: {
-            size: { width: 11906, height: 16838 },
-            margin: { top: 1080, bottom: 1080, left: 1080, right: 1080 }
-          }
-        },
-        children
-      }]
-    });
+// ═══════════════════════════════════
+// ADD / UPDATE SECTION
+// ═══════════════════════════════════
+async function addSection(){
+  const div=document.getElementById('add_div').value;
+  const sub=document.getElementById('add_sub').value;
+  const sec=document.getElementById('add_sec').value.trim();
+  const ae=document.getElementById('add_ae').value.trim();
+  const ade=document.getElementById('add_ade').value.trim();
+  const de=document.getElementById('add_de').value.trim();
+  if(!div||!sub||!sec){toast('Division, Sub-Div and Section are required',true);return;}
+  const obj={division:div,subdivision:sub,section:sec,ae,ade,de};
+  // Update in-memory
+  const idx=allSecs.findIndex(s=>s.division===div&&s.subdivision===sub&&s.section===sec);
+  if(idx>=0) allSecs[idx]={...allSecs[idx],...obj};
+  else allSecs.push(obj);
+  // Save to Firebase
+  if(db){
+    const id=(div+'-'+sub+'-'+sec).replace(/[^a-zA-Z0-9-]/g,'_');
+    await db.collection('sections').doc(id).set(obj,{merge:true});
   }
+  renderSecTable();
+  ['add_ae','add_ade','add_de'].forEach(id=>document.getElementById(id).value='');
+  toast('Section updated!');
 }
 
-// ═══════════════ SUBMIT / DOWNLOAD ═══════════════
-async function submitDoc() {
-  const d = collectData();
-  const err = validate(d);
-  if (err) { toast(err, true); return; }
-
-  const recs = getRecords();
-  d.id = Date.now();
-  recs.push(d);
-  saveRecords(recs);
-
-  await doDownload(d);
-  toast('✅ Saved & downloading!');
-}
-
-async function downloadOnly() {
-  const d = collectData();
-  const err = validate(d);
-  if (err) { toast(err, true); return; }
-  await doDownload(d);
-  toast('📄 Document downloaded!');
-}
-
-async function doDownload(d) {
-  const doc = await buildDocx(d);
-  const blob = await window.docx.Packer.toBlob(doc);
-  const typeLabel = {PM:'PM_Order', Z:'Z_Estimate', CGM:'CGM_Letter'}[d.doc_type] || 'Doc';
-  const fname = `${typeLabel}_DNo${d.d_no || '___'}_${d.estimate_no || 'Est'}_${d.division || ''}.docx`;
-  saveAs(blob, fname);
-}
-
-// ═══════════════ STORAGE ═══════════════
-function getRecords() {
-  try { return JSON.parse(localStorage.getItem(STORE)) || []; }
-  catch { return []; }
-}
-function saveRecords(arr) { localStorage.setItem(STORE, JSON.stringify(arr)); }
-
-// ═══════════════ RECORDS TABLE ═══════════════
-function renderTable() {
-  const recs = getRecords();
-  const q = (document.getElementById('search-input')?.value || '').toLowerCase();
-  const filtered = q ? recs.filter(r =>
-    [r.estimate_no, r.division, r.d_no, r.work_desc, r.subdivision]
-      .join(' ').toLowerCase().includes(q)
-  ) : recs;
-
-  document.getElementById('count-badge').textContent = recs.length;
-  const tbody = document.getElementById('records-tbody');
-  if (!filtered.length) {
-    tbody.innerHTML = '<tr><td colspan="10" class="no-data">No records found.</td></tr>';
-    return;
-  }
-  const typeClass = {PM:'type-pm', Z:'type-z', CGM:'type-cgm'};
-  const typeLabel = {PM:'PM Order', Z:'Z-Est.', CGM:'CGM Lr.'};
-  tbody.innerHTML = filtered.map(r => {
-    const amt = r.doc_type==='Z'
-      ? '₹'+parseInt(r.amount_g||0).toLocaleString('en-IN')+' (G)'
-      : r.amount ? '₹'+parseInt(r.amount).toLocaleString('en-IN') : '—';
-    const idx = recs.findIndex(x => x.id === r.id);
+// ═══════════════════════════════════
+// RECORDS
+// ═══════════════════════════════════
+const getRecs=()=>{try{return JSON.parse(localStorage.getItem(STORE))||[]}catch{return[]}};
+const saveRecs=a=>localStorage.setItem(STORE,JSON.stringify(a));
+function renderRec(){
+  const recs=getRecs();
+  const q=(document.getElementById('rec-q')?.value||'').toLowerCase();
+  const f=q?recs.filter(r=>[r.estimate_no,r.division,r.d_no,r.work_desc].join(' ').toLowerCase().includes(q)):recs;
+  document.getElementById('cnt').textContent=recs.length;
+  const tl={PM:'PM Order',Z:'Z-Est.',CGM:'CGM Lr.'};
+  document.getElementById('rec-tbody').innerHTML=f.length?f.map((r,i)=>{
+    const amt=r.doc_type==='Z'?'₹'+parseInt(r.amt_g||0).toLocaleString('en-IN')+'[G]':
+      r.amount?'₹'+parseInt(r.amount).toLocaleString('en-IN'):'—';
+    const idx=recs.findIndex(x=>x.id===r.id);
     return `<tr>
       <td>${idx+1}</td>
-      <td><span class="type-badge ${typeClass[r.doc_type]||''}">${typeLabel[r.doc_type]||r.doc_type}</span></td>
-      <td>${fmtDate(r.memo_date)}</td>
-      <td>${r.d_no||'—'}</td>
-      <td><b>${r.estimate_no||'—'}</b></td>
-      <td>${r.division||'—'}</td>
-      <td>${r.subdivision||'—'}</td>
+      <td><span class="rbadge" style="font-size:10.5px">${tl[r.doc_type]||r.doc_type}</span></td>
+      <td>${fmtD(r.memo_date)}</td><td>${r.d_no||'—'}</td>
+      <td><b>${r.estimate_no||'—'}</b></td><td>${r.division||'—'}</td>
+      <td>${r.subdivision||'—'}</td><td>${r.section||'—'}</td>
       <td>${amt}</td>
-      <td style="font-size:11px;color:#888">${r.saved_on||'—'}</td>
-      <td style="display:flex;gap:6px">
-        <button class="btn btn-blue" style="font-size:11px;padding:5px 10px"
-          onclick="reDownload(${idx})">⬇ docx</button>
-        <button class="btn btn-red"
-          onclick="deleteRec(${idx})">✕</button>
-      </td>
-    </tr>`;
-  }).join('');
+      <td style="font-size:10.5px;color:#888">${r.saved_on||'—'}</td>
+      <td style="display:flex;gap:5px">
+        <button class="btn b-blue" style="font-size:10.5px;padding:4px 9px"
+          onclick="reDl(${idx})">⬇ docx</button>
+        <button class="btn b-red" onclick="delR(${idx})">✕</button>
+      </td></tr>`;
+  }).join(''):'<tr><td colspan="11" class="no-data">No records</td></tr>';
+}
+async function reDl(i){const r=getRecs()[i];if(!r)return;await doDl(r);toast('Re-downloaded!');}
+function delR(i){if(!confirm('Delete?'))return;const r=getRecs();r.splice(i,1);saveRecs(r);renderRec();toast('Deleted');}
+function clrAll(){if(!confirm('Delete ALL?'))return;localStorage.removeItem(STORE);renderRec();toast('Cleared');}
+function expCSV(){
+  const r=getRecs();if(!r.length){toast('No records',true);return;}
+  const cols=['doc_type','memo_date','d_no','fy_s','estimate_no','division','subdivision',
+    'section','pm_type','works_type','amount','in_words','sanc_no','saved_on'];
+  const csv=[cols.join(','),...r.map(x=>cols.map(c=>'"'+(x[c]||'').replace(/"/g,'""')+'"').join(','))].join('\n');
+  saveAs(new Blob([csv],{type:'text/csv'}),'TGSPDCL_'+new Date().toISOString().slice(0,10)+'.csv');
+  toast('CSV exported');
 }
 
-async function reDownload(idx) {
-  const recs = getRecords();
-  if (!recs[idx]) return;
-  await doDownload(recs[idx]);
-  toast('📄 Re-downloaded!');
+// ═══════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════
+function v(id){return document.getElementById(id)?.value?.trim()||'';}
+function fmtD(s){if(!s)return '___';const[y,m,d]=s.split('-');return `${d}.${m}.${y}`;}
+function clearForm(){
+  document.querySelectorAll('#page-doc input:not([readonly]),#page-doc select,#page-doc textarea')
+    .forEach(el=>{
+      if(el.id==='fy_s')el.value='26-27';
+      else if(el.id==='fy_f')el.value='2026-2027';
+      else if(el.id==='acct_no')el.value='74.1';
+      else if(el.id==='encl')el.value='Estimate';
+      else el.value='';
+    });
+}
+function toast(msg,err=false){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.className=err?'err':'';
+  t.style.display='block';setTimeout(()=>t.style.display='none',3200);
 }
 
-function deleteRec(idx) {
-  if (!confirm('Delete this record?')) return;
-  const recs = getRecords(); recs.splice(idx,1); saveRecords(recs); renderTable();
-  toast('Deleted');
-}
-function clearAll() {
-  if (!confirm('Delete ALL records? Cannot be undone.')) return;
-  localStorage.removeItem(STORE); renderTable(); toast('All cleared');
-}
-
-// ═══════════════ CSV EXPORT ═══════════════
-function exportCSV() {
-  const recs = getRecords();
-  if (!recs.length) { toast('No records', true); return; }
-  const cols = ['doc_type','memo_date','d_no','fy_short','estimate_no','division','subdivision',
-    'work_desc','amount','amount_g','amount_n','in_words','sanction_no','saved_on'];
-  const csv = [cols.join(','),
-    ...recs.map(r => cols.map(c => '"'+(r[c]||'').replace(/"/g,'""')+'"').join(','))
-  ].join('\n');
-  saveAs(new Blob([csv],{type:'text/csv'}), 'TGSPDCL_Estimates_'+new Date().toISOString().slice(0,10)+'.csv');
-  toast('CSV exported!');
-}
-
-// ═══════════════ CLEAR FORM ═══════════════
-function clearForm() {
-  document.querySelectorAll('#page-entry input:not([readonly]), #page-entry select, #page-entry textarea')
-    .forEach(el => { if(el.id !== 'fy_short' && el.id !== 'fy_full' && el.id !== 'works_type' && el.id !== 'encl_desc') el.value=''; });
-  document.getElementById('fy_short').value = '25-26';
-  document.getElementById('fy_full').value = '2025-2026';
-  document.getElementById('encl_desc').value = 'Estimate';
-}
-
-// ═══════════════ TOAST ═══════════════
-function toast(msg, isErr=false) {
-  const t = document.getElementById('toast');
-  t.textContent = msg; t.className = isErr ? 'err' : '';
-  t.style.display = 'block';
-  setTimeout(() => t.style.display='none', 3200);
-}
-
-// ═══════════════ INIT ═══════════════
-window.onload = () => {
-  document.getElementById('memo_date').value = new Date().toISOString().slice(0,10);
-  setDocType('PM');
+// ═══════════════════════════════════
+// INIT
+// ═══════════════════════════════════
+window.onload=()=>{
+  document.getElementById('memo_date').value=new Date().toISOString().slice(0,10);
+  setDT('PM');
+  loadLocally();
+  loadFBSaved();
 };
-
-// Auto-assemble LR when any ref field changes
-['f_no','lines_dno','fy_short','lines_date'].forEach(id => {
-  const el = document.getElementById(id);
-  if(el) el.addEventListener('input', assembleLr);
-});
 </script>
 </body>
 </html>
