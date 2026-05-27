@@ -1,0 +1,947 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TGSPDCL – SCADA Estimate Tool</title>
+<script src="https://unpkg.com/docx@8.5.0/build/index.js"></script>
+<script src="https://unpkg.com/file-saver@2.0.5/dist/FileSaver.min.js"></script>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Segoe UI', Arial, sans-serif; background: #eef1f7; color: #1a1a2e; }
+
+header {
+  background: linear-gradient(135deg, #0a2463, #1b4f8a);
+  color: #fff; padding: 15px 28px;
+  display: flex; align-items: center; gap: 14px;
+  box-shadow: 0 3px 12px rgba(0,0,0,.3);
+}
+header .logo { font-size: 32px; }
+header h1 { font-size: 16px; font-weight: 700; line-height: 1.3; }
+header p { font-size: 11.5px; opacity: .7; margin-top: 2px; }
+
+.tabs { display: flex; background: #0a2463; padding: 0 22px; }
+.tab { padding: 11px 22px; cursor: pointer; color: #7fa8cc; font-size: 13.5px; font-weight: 600;
+       border-bottom: 3px solid transparent; transition: .15s; }
+.tab.active { color: #6dd5fa; border-bottom-color: #6dd5fa; }
+.tab:hover { color: #b8d8f0; }
+
+.page { display: none; padding: 20px; max-width: 1080px; margin: 0 auto; }
+.page.active { display: block; }
+
+/* ── DOC TYPE SELECTOR ── */
+.doc-type-row {
+  display: flex; gap: 12px; margin-bottom: 18px; flex-wrap: wrap;
+}
+.dtype-btn {
+  flex: 1; min-width: 180px; padding: 14px 18px;
+  border: 2.5px solid #c8d6e8; border-radius: 10px; cursor: pointer;
+  background: #fff; text-align: center; transition: .2s;
+}
+.dtype-btn.active { border-color: #1b4f8a; background: #e8f0fb; }
+.dtype-btn .icon { font-size: 22px; margin-bottom: 4px; }
+.dtype-btn .label { font-size: 13px; font-weight: 700; color: #0a2463; }
+.dtype-btn .desc { font-size: 11px; color: #666; margin-top: 2px; }
+
+/* ── CARD ── */
+.card {
+  background: #fff; border-radius: 12px; padding: 22px 24px;
+  box-shadow: 0 2px 10px rgba(0,0,0,.07); margin-bottom: 16px;
+}
+.card-title {
+  font-size: 13px; font-weight: 700; color: #0a2463; margin-bottom: 14px;
+  padding-bottom: 8px; border-bottom: 2px solid #e0e8f5;
+  display: flex; align-items: center; gap: 8px;
+}
+
+.sec-label {
+  font-size: 10.5px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .8px; color: #5b8ec4; margin: 16px 0 8px;
+}
+
+.grid { display: grid; gap: 12px; }
+.g2 { grid-template-columns: 1fr 1fr; }
+.g3 { grid-template-columns: 1fr 1fr 1fr; }
+.g4 { grid-template-columns: 1fr 1fr 1fr 1fr; }
+@media(max-width:680px){ .g2,.g3,.g4{grid-template-columns:1fr;} }
+
+.field { display: flex; flex-direction: column; gap: 4px; }
+.field label { font-size: 11.5px; font-weight: 600; color: #444; }
+.field input, .field select, .field textarea {
+  padding: 8px 11px; border: 1.5px solid #cdd6e6; border-radius: 7px;
+  font-size: 13px; color: #1a1a2e; background: #f8fafc; transition: border .15s;
+}
+.field input:focus, .field select:focus, .field textarea:focus {
+  outline: none; border-color: #3b82c4; background: #fff;
+}
+.field textarea { resize: vertical; min-height: 70px; line-height: 1.5; }
+.field small { font-size: 10.5px; color: #888; }
+.field input[readonly] { background: #eff1f5; color: #666; }
+
+.btn-row { margin-top: 22px; display: flex; gap: 10px; flex-wrap: wrap; }
+.btn { padding: 10px 24px; border: none; border-radius: 8px; font-size: 13.5px;
+       font-weight: 700; cursor: pointer; transition: .15s; }
+.btn-green  { background: #16a34a; color: #fff; }
+.btn-green:hover  { background: #15803d; }
+.btn-blue   { background: #1b4f8a; color: #fff; }
+.btn-blue:hover   { background: #153d6e; }
+.btn-gray   { background: #e2e8f0; color: #333; }
+.btn-gray:hover   { background: #cbd5e1; }
+.btn-red    { background: #dc2626; color: #fff; font-size: 11.5px; padding: 6px 12px; }
+.btn-red:hover    { background: #b91c1c; }
+
+/* ── PREVIEW PANE ── */
+.preview-card {
+  background: #fff; border-radius: 12px; padding: 26px 30px;
+  box-shadow: 0 2px 10px rgba(0,0,0,.07); font-family: 'Times New Roman', serif;
+  font-size: 13px; line-height: 1.7; border: 1px solid #dde3ef;
+}
+.preview-card.hidden { display: none; }
+.preview-header { text-align: center; font-weight: bold; margin-bottom: 6px; font-size: 13.5px; }
+.preview-tagline { text-align: center; font-style: italic; font-size: 12px; margin-bottom: 14px; }
+.preview-memo { margin: 10px 0; }
+.preview-sub { margin: 8px 0; }
+.preview-ref { margin: 8px 0 0 20px; }
+.preview-body { margin: 10px 20px; }
+.preview-body p { margin: 6px 0; }
+.preview-sig { margin-top: 24px; display: flex; justify-content: space-between; align-items: flex-end; }
+.preview-to { margin-top: 18px; }
+.preview-sep { text-align: center; margin: 12px 0; letter-spacing: 6px; }
+
+/* ── RECORDS ── */
+.records-top { display: flex; align-items: center; justify-content: space-between;
+               padding: 14px 20px; border-bottom: 2px solid #e8ecf5; }
+.records-top h2 { font-size: 14px; font-weight: 700; color: #0a2463; }
+.badge { background: #3b82c4; color: #fff; border-radius: 20px;
+         padding: 2px 10px; font-size: 11.5px; font-weight: 700; }
+.search-bar { padding: 11px 18px; background: #f5f7fb; border-bottom: 1px solid #e0e8f5; }
+.search-bar input { width: 100%; max-width: 400px; padding: 8px 12px;
+  border: 1.5px solid #c8d6e8; border-radius: 7px; font-size: 12.5px; }
+.tbl-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+thead th { background: #0a2463; color: #fff; padding: 9px 13px;
+           text-align: left; white-space: nowrap; }
+tbody tr:hover { background: #f0f6ff; }
+tbody td { padding: 8px 13px; border-bottom: 1px solid #eef0f5; white-space: nowrap; }
+.no-data { text-align: center; color: #aaa; padding: 38px; font-size: 13px; }
+.type-badge { display: inline-block; padding: 2px 8px; border-radius: 4px;
+              font-size: 10.5px; font-weight: 700; }
+.type-pm { background: #dbeafe; color: #1e40af; }
+.type-z  { background: #d1fae5; color: #065f46; }
+.type-cgm{ background: #fef3c7; color: #92400e; }
+
+#toast {
+  position: fixed; bottom: 28px; right: 28px;
+  background: #16a34a; color: #fff; padding: 12px 20px;
+  border-radius: 10px; font-size: 13.5px; font-weight: 600;
+  box-shadow: 0 4px 16px rgba(0,0,0,.2); display: none; z-index: 9999;
+}
+#toast.err { background: #dc2626; }
+
+/* Z-Estimate extra fields toggle */
+.z-only { display: none; }
+.z-visible .z-only { display: block; }
+.z-visible-grid .z-only { display: contents; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">⚡</div>
+  <div>
+    <h1>TGSPDCL – SCADA Circle | Estimate Sanction Document Generator</h1>
+    <p>PM Order Memo · Z-Estimate Memo · CGM Letter &nbsp;|&nbsp; Records saved locally on this computer</p>
+  </div>
+</header>
+
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('entry')">📝 New Document</div>
+  <div class="tab" onclick="switchTab('records')">📋 Saved Records</div>
+</div>
+
+<!-- ═══ ENTRY PAGE ═══ -->
+<div class="page active" id="page-entry">
+
+  <!-- Document Type -->
+  <div class="doc-type-row" id="dtype-row">
+    <div class="dtype-btn active" onclick="setDocType('PM')" id="btn-PM">
+      <div class="icon">📋</div>
+      <div class="label">PM Order Sanction</div>
+      <div class="desc">Memo.No. SE/SCADA → DE/Lines</div>
+    </div>
+    <div class="dtype-btn" onclick="setDocType('Z')" id="btn-Z">
+      <div class="icon">📐</div>
+      <div class="label">Z-Estimate Sanction</div>
+      <div class="desc">Z-Estimate with G & N amounts</div>
+    </div>
+    <div class="dtype-btn" onclick="setDocType('CGM')" id="btn-CGM">
+      <div class="icon">✉️</div>
+      <div class="label">CGM Letter</div>
+      <div class="desc">Lr.No. SE/SCADA → CE/Metro Zone</div>
+    </div>
+  </div>
+
+  <!-- MEMO DETAILS -->
+  <div class="card">
+    <div class="card-title">🏷️ Memo / Letter Reference</div>
+    <div class="grid g4">
+      <div class="field">
+        <label>D.No. (Document Number) *</label>
+        <input id="d_no" type="text" placeholder="e.g. 19919">
+      </div>
+      <div class="field">
+        <label>Financial Year (short) *</label>
+        <input id="fy_short" type="text" placeholder="e.g. 25-26" value="25-26">
+      </div>
+      <div class="field">
+        <label>Financial Year (full) *</label>
+        <input id="fy_full" type="text" placeholder="e.g. 2025-2026" value="2025-2026">
+      </div>
+      <div class="field">
+        <label>Memo / Letter Date *</label>
+        <input id="memo_date" type="date">
+      </div>
+    </div>
+  </div>
+
+  <!-- SUBJECT / WORK -->
+  <div class="card">
+    <div class="card-title">📌 Subject (Work Description)</div>
+    <div class="field">
+      <label>Work Description (Sub line) *</label>
+      <textarea id="work_desc" rows="3"
+        placeholder="e.g. Replacement of 1 No. Sick 33 KV Chanchalguda incoming VCB at 33/11KV Asmangadh Sub-Station in Lines Malakpet section of Lines-VIII, Malakpet Sub-Division"></textarea>
+      <small>This fills the Sub: line exactly as typed</small>
+    </div>
+    <div class="grid g3" style="margin-top:12px">
+      <div class="field">
+        <label>Division (DE/Lines) *</label>
+        <select id="division" onchange="onDivisionChange()">
+          <option value="">-- Select --</option>
+          <option value="Banjara Hills">Banjara Hills</option>
+          <option value="South">South</option>
+          <option value="Central">Central</option>
+          <option value="Secunderabad">Secunderabad</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Sub-Division</label>
+        <input id="subdivision" type="text" placeholder="e.g. Malakpet">
+      </div>
+      <div class="field">
+        <label>Section</label>
+        <input id="section" type="text" placeholder="e.g. Malakpet">
+      </div>
+    </div>
+  </div>
+
+  <!-- REFERENCES -->
+  <div class="card">
+    <div class="card-title">🔗 Reference Details (Ref 5 & 6)</div>
+    <div class="sec-label">Ref 5 – Lines Letter</div>
+    <div class="grid g3">
+      <div class="field">
+        <label>Lines Lr.No. prefix (auto-filled)</label>
+        <input id="lr_prefix" type="text" readonly placeholder="Auto from Division">
+      </div>
+      <div class="field">
+        <label>F.No. (File No.)</label>
+        <input id="f_no" type="text" placeholder="leave blank if none">
+      </div>
+      <div class="field">
+        <label>Lines D.No. *</label>
+        <input id="lines_dno" type="text" placeholder="e.g. 2124/25-26">
+      </div>
+    </div>
+    <div class="grid g2" style="margin-top:10px">
+      <div class="field">
+        <label>Full Lines Lr.No. (editable – auto-assembled)</label>
+        <input id="lines_lr_full" type="text" placeholder="Auto-assembled or type manually">
+        <small>Edit directly if the auto-assembled version is wrong</small>
+      </div>
+      <div class="field">
+        <label>Lines Lr. Date *</label>
+        <input id="lines_date" type="date" onchange="assembleLr()">
+      </div>
+    </div>
+    <div class="sec-label">Ref 6 – Estimate</div>
+    <div class="grid g2">
+      <div class="field">
+        <label id="est_label">Estimate No. (SAP PM Order No.) *</label>
+        <input id="estimate_no" type="text" placeholder="e.g. 970000019919 or Y-2025-15-01-30-01-002">
+      </div>
+      <div class="field z-only" id="z-ref-prefix-field">
+        <label>Prefix for Z-Estimate</label>
+        <select id="z_prefix">
+          <option value="Z-Estimate No.">Z-Estimate No.</option>
+          <option value="SAP Estimate No.">SAP Estimate No.</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- AMOUNT -->
+  <div class="card" id="amount-card">
+    <div class="card-title">💰 Amount Details</div>
+    <div id="pm-amount-section">
+      <div class="grid g3">
+        <div class="field">
+          <label>Amount (₹) *</label>
+          <input id="amount" type="number" placeholder="e.g. 882962" oninput="calcAmounts()">
+        </div>
+        <div class="field">
+          <label>Less Amount (₹) (if applicable)</label>
+          <input id="less_amt" type="number" placeholder="0" oninput="calcAmounts()">
+        </div>
+        <div class="field">
+          <label>Amount in Words *</label>
+          <input id="in_words" type="text" placeholder="Rupees ... Only (auto)">
+          <small>Auto-filled; edit if needed</small>
+        </div>
+      </div>
+    </div>
+    <div id="z-amount-section" class="z-only">
+      <div class="grid g4">
+        <div class="field">
+          <label>Gross Amount [G] (₹) *</label>
+          <input id="amount_g" type="number" placeholder="e.g. 183708" oninput="calcZAmounts()">
+        </div>
+        <div class="field">
+          <label>Net Amount [N] (₹) *</label>
+          <input id="amount_n" type="number" placeholder="e.g. 183708" oninput="calcZAmounts()">
+        </div>
+        <div class="field">
+          <label>Amount in Words [G] *</label>
+          <input id="in_words_g" type="text" placeholder="Rupees ... Only (auto)">
+        </div>
+        <div class="field">
+          <label>Amount in Words [N] *</label>
+          <input id="in_words_n" type="text" placeholder="Rupees ... Only (auto)">
+        </div>
+      </div>
+    </div>
+
+    <div id="sanction-section" class="pm-only">
+      <div class="sec-label">Sanction Registration</div>
+      <div class="grid g3">
+        <div class="field">
+          <label>Sanction No.</label>
+          <input id="sanction_no" type="text" placeholder="e.g. 1234">
+        </div>
+        <div class="field">
+          <label>Sanction Date</label>
+          <input id="sanction_date" type="date">
+        </div>
+        <div class="field">
+          <label>Budget / Works Type</label>
+          <select id="works_type">
+            <option value="T&D">T&amp;D</option>
+            <option value="O&M">O&amp;M</option>
+            <option value="Capital">Capital</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CGM EXTRA (only for CGM letter) -->
+  <div class="card cgm-only" id="cgm-card" style="display:none">
+    <div class="card-title">✉️ CGM Letter Specific</div>
+    <div class="grid g2">
+      <div class="field">
+        <label>Consumer / Requestor Name</label>
+        <input id="consumer_name" type="text" placeholder="e.g. Mahaboob Miya, Executive Engineer-I, HRDCL">
+      </div>
+      <div class="field">
+        <label>Enclosure Description</label>
+        <input id="encl_desc" type="text" placeholder="e.g. Estimate" value="Estimate">
+      </div>
+    </div>
+  </div>
+
+  <!-- BUTTONS -->
+  <div class="btn-row">
+    <button class="btn btn-green" onclick="submitDoc()">💾 Save &amp; Download .docx</button>
+    <button class="btn btn-blue"  onclick="downloadOnly()">📄 Download .docx Only</button>
+    <button class="btn btn-gray"  onclick="clearForm()">🔄 Clear Form</button>
+  </div>
+</div>
+
+<!-- ═══ RECORDS PAGE ═══ -->
+<div class="page" id="page-records">
+  <div class="card" style="padding:0;overflow:hidden">
+    <div class="records-top">
+      <h2>Saved Records &nbsp;<span class="badge" id="count-badge">0</span></h2>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-blue" style="font-size:11.5px;padding:7px 14px" onclick="exportCSV()">⬇ Export CSV</button>
+        <button class="btn btn-red" onclick="clearAll()">🗑 Clear All</button>
+      </div>
+    </div>
+    <div class="search-bar">
+      <input type="text" id="search-input" placeholder="🔍 Search by Estimate No, Division, Work Description..." oninput="renderTable()">
+    </div>
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Type</th>
+            <th>Date</th>
+            <th>D.No.</th>
+            <th>Estimate No.</th>
+            <th>Division</th>
+            <th>Sub-Div</th>
+            <th>Amount (₹)</th>
+            <th>Saved On</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="records-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ═══════════════ GLOBALS ═══════════════
+const STORE = 'tgspdcl_v2_estimates';
+let docType = 'PM';
+
+const DIV_LR_MAP = {
+  'Banjara Hills': 'DEE/Lines/Tech/Banjarahills',
+  'South':         'DE/Lines South',
+  'Central':       'DE/Lines Central',
+  'Secunderabad':  'DE/Lines Secunderabad',
+};
+
+// ═══════════════ TAB ═══════════════
+function switchTab(tab) {
+  document.querySelectorAll('.tab').forEach((t, i) =>
+    t.classList.toggle('active', ['entry','records'][i] === tab));
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-'+tab).classList.add('active');
+  if (tab === 'records') renderTable();
+}
+
+// ═══════════════ DOC TYPE ═══════════════
+function setDocType(t) {
+  docType = t;
+  document.querySelectorAll('.dtype-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('btn-'+t).classList.add('active');
+
+  // Z-only fields
+  const isZ = t === 'Z';
+  const isCGM = t === 'CGM';
+  const isPM = t === 'PM';
+
+  document.querySelectorAll('.z-only').forEach(el => el.style.display = isZ ? '' : 'none');
+  document.getElementById('z-ref-prefix-field').style.display = isZ ? '' : 'none';
+  document.getElementById('cgm-card').style.display = isCGM ? '' : 'none';
+  document.getElementById('sanction-section').style.display = isCGM ? 'none' : '';
+
+  // Labels
+  document.getElementById('est_label').textContent = isZ
+    ? 'Z-Estimate No. *'
+    : (isCGM ? 'SAP Estimate No. *' : 'Estimate No. (SAP PM No.) *');
+}
+
+// ═══════════════ DIVISION AUTO-FILL ═══════════════
+function onDivisionChange() {
+  const div = document.getElementById('division').value;
+  const prefix = DIV_LR_MAP[div] || '';
+  document.getElementById('lr_prefix').value = prefix;
+  assembleLr();
+}
+
+function assembleLr() {
+  const prefix = document.getElementById('lr_prefix').value;
+  const fno    = document.getElementById('f_no').value.trim();
+  const dno    = document.getElementById('lines_dno').value.trim();
+  const fy     = document.getElementById('fy_short').value.trim();
+  const dateV  = document.getElementById('lines_date').value;
+
+  if (!prefix) return;
+  let lr = prefix + '/F.' + (fno || '') + '/D.No.' + (dno || '___') + '/' + (fy || '__');
+  if (dateV) lr += ', Dt.' + fmtDate(dateV);
+  document.getElementById('lines_lr_full').value = lr;
+}
+
+// ═══════════════ AMOUNT → WORDS ═══════════════
+function numWords(n) {
+  if (!n || isNaN(n)) return '';
+  n = Math.round(Number(n));
+  const ones = ['','One','Two','Three','Four','Five','Six','Seven','Eight','Nine',
+    'Ten','Eleven','Twelve','Thirteen','Fourteen','Fifteen','Sixteen','Seventeen','Eighteen','Nineteen'];
+  const tens = ['','','Twenty','Thirty','Forty','Fifty','Sixty','Seventy','Eighty','Ninety'];
+  function w(num) {
+    if (num === 0) return '';
+    if (num < 20) return ones[num];
+    if (num < 100) return tens[Math.floor(num/10)] + (num%10 ? ' '+ones[num%10] : '');
+    return ones[Math.floor(num/100)]+' Hundred'+(num%100 ? ' '+w(num%100) : '');
+  }
+  let r='';
+  const cr   = Math.floor(n/10000000); n%=10000000;
+  const lakh = Math.floor(n/100000);   n%=100000;
+  const thou = Math.floor(n/1000);     n%=1000;
+  if (cr)   r += w(cr)   + ' Crore ';
+  if (lakh) r += w(lakh) + ' Lakh ';
+  if (thou) r += w(thou) + ' Thousand ';
+  if (n)    r += w(n);
+  return 'Rupees ' + r.trim() + ' Only';
+}
+
+function calcAmounts() {
+  const a = parseFloat(document.getElementById('amount').value) || 0;
+  document.getElementById('in_words').value = a ? numWords(a) : '';
+}
+function calcZAmounts() {
+  const g = parseFloat(document.getElementById('amount_g').value) || 0;
+  const nv = parseFloat(document.getElementById('amount_n').value) || 0;
+  document.getElementById('in_words_g').value = g ? numWords(g) : '';
+  document.getElementById('in_words_n').value = nv ? numWords(nv) : '';
+}
+
+// ═══════════════ DATE FORMAT ═══════════════
+function fmtDate(s) {
+  if (!s) return '___.___.______';
+  const [y,m,d] = s.split('-');
+  return `${d}.${m}.${y}`;
+}
+
+// ═══════════════ COLLECT FORM DATA ═══════════════
+function collectData() {
+  const g = id => document.getElementById(id)?.value?.trim() || '';
+  return {
+    doc_type:    docType,
+    d_no:        g('d_no'),
+    fy_short:    g('fy_short'),
+    fy_full:     g('fy_full'),
+    memo_date:   g('memo_date'),
+    work_desc:   g('work_desc'),
+    division:    g('division'),
+    subdivision: g('subdivision'),
+    section:     g('section'),
+    lr_prefix:   g('lr_prefix'),
+    f_no:        g('f_no'),
+    lines_dno:   g('lines_dno'),
+    lines_lr_full: g('lines_lr_full'),
+    lines_date:  g('lines_date'),
+    estimate_no: g('estimate_no'),
+    z_prefix:    g('z_prefix') || 'Z-Estimate No.',
+    // PM/Z
+    amount:      g('amount'),
+    less_amt:    g('less_amt'),
+    in_words:    g('in_words'),
+    // Z only
+    amount_g:    g('amount_g'),
+    amount_n:    g('amount_n'),
+    in_words_g:  g('in_words_g'),
+    in_words_n:  g('in_words_n'),
+    // Sanction
+    sanction_no: g('sanction_no'),
+    sanction_date: g('sanction_date'),
+    works_type:  g('works_type') || 'T&D',
+    // CGM
+    consumer_name: g('consumer_name'),
+    encl_desc:   g('encl_desc') || 'Estimate',
+    saved_on:    new Date().toLocaleString('en-IN'),
+  };
+}
+
+// ═══════════════ VALIDATE ═══════════════
+function validate(d) {
+  if (!d.d_no)        return 'D.No. is required';
+  if (!d.memo_date)   return 'Memo / Letter Date is required';
+  if (!d.work_desc)   return 'Work Description (Sub line) is required';
+  if (!d.division)    return 'Division is required';
+  if (!d.estimate_no) return 'Estimate No. is required';
+  if (d.doc_type === 'PM' || d.doc_type === 'Z') {
+    if (d.doc_type === 'PM' && !d.amount) return 'Amount is required';
+    if (d.doc_type === 'Z' && (!d.amount_g || !d.amount_n)) return 'Gross and Net amounts are required';
+  }
+  return null;
+}
+
+// ═══════════════ BUILD DOCX ═══════════════
+async function buildDocx(d) {
+  const { Document, Paragraph, TextRun, AlignmentType, BorderStyle,
+          Table, TableRow, TableCell, WidthType, UnderlineType } = window.docx;
+
+  const FONT = 'Times New Roman';
+  const SZ_NORMAL = 24;  // 12pt
+  const SZ_BOLD   = 24;
+
+  const tr = (text, opts={}) => new TextRun({
+    text, font: FONT, size: opts.size || SZ_NORMAL,
+    bold: opts.bold || false, italics: opts.italic || false,
+    underline: opts.underline ? { type: UnderlineType.SINGLE } : undefined,
+  });
+
+  const p = (children, opts={}) => new Paragraph({
+    children: Array.isArray(children) ? children : [children],
+    alignment: opts.align || AlignmentType.LEFT,
+    spacing: { before: opts.before || 0, after: opts.after || 80 },
+    indent: opts.indent ? { left: opts.indent } : undefined,
+  });
+
+  const empty = () => p([tr('')], { after: 60 });
+
+  // TGSPDCL Header Table (logo row)
+  const headerTable = new Table({
+    width: { size: 100, type: WidthType.PERCENTAGE },
+    borders: { top:{style:BorderStyle.NONE}, bottom:{style:BorderStyle.NONE},
+               left:{style:BorderStyle.NONE}, right:{style:BorderStyle.NONE},
+               insideH:{style:BorderStyle.NONE}, insideV:{style:BorderStyle.NONE} },
+    rows: [new TableRow({ children: [
+      new TableCell({
+        children: [p([tr('⚡', {size:40})])],
+        width: { size: 800, type: WidthType.DXA },
+        borders: Object.fromEntries(['top','bottom','left','right'].map(k=>[k,{style:BorderStyle.NONE}])),
+      }),
+      new TableCell({
+        children: [
+          p([tr('Southern Power Distribution Company of T.G. Ltd.', {bold:true, size:28})], {align:AlignmentType.CENTER}),
+          p([tr('"Electricity Saved is Electricity Produced"', {italic:true, size:22})], {align:AlignmentType.CENTER}),
+        ],
+        borders: Object.fromEntries(['top','bottom','left','right'].map(k=>[k,{style:BorderStyle.SINGLE, size:4, color:'000000'}])),
+      }),
+    ]})]
+  });
+
+  // MEMO FORMAT (PM Order & Z-Estimate)
+  if (d.doc_type === 'PM' || d.doc_type === 'Z') {
+    const memoNo = `Memo.No.SE/SCADA/DE(T)/ADE(T&M)/AE(T)/F.No./D.No.${d.d_no}/${d.fy_short},Dt.${fmtDate(d.memo_date)}.`;
+    const ref5 = d.lines_lr_full || '___';
+    const ref6label = d.doc_type === 'Z' ? (d.z_prefix || 'Z-Estimate No.') : 'Estimate No.';
+    const deLines = `Divisional Engineer/Lines/${d.division}`;
+    const wtype = d.works_type;
+    const amtDisplay = d.doc_type === 'Z'
+      ? `Rs.${parseInt(d.amount_g).toLocaleString('en-IN')}/-[G] (${d.in_words_g}) & Rs.${parseInt(d.amount_n).toLocaleString('en-IN')}/-[N] (${d.in_words_n})`
+      : `Rs.${parseInt(d.amount).toLocaleString('en-IN')}/${d.in_words ? '-(' + d.in_words + ')' : ''}`;
+
+    const sanctionLine = d.sanction_no
+      ? `The estimate is technically sanctioned and registered as sanction No.${d.sanction_no}/${d.fy_short} Dt.${fmtDate(d.sanction_date)} for the financial year ${d.fy_full}.`
+      : `The estimate is technically sanctioned and registered as sanction No.____________/${d.fy_short} Dt.____________ for the financial year ${d.fy_full}.`;
+
+    const bodyBullet = (text) => p(
+      [tr('– ', {bold:false}), tr(text)],
+      { before: 80, after: 80, indent: 720 }
+    );
+
+    const refPara = (num, text) => p(
+      [tr(`${num}) ${text}`)],
+      { before: 40, after: 40, indent: 1080 }
+    );
+
+    const children = [
+      headerTable,
+      empty(),
+      p([tr('Office of the', {size:22})], {align:AlignmentType.RIGHT, before:0, after:20}),
+      p([tr('Superintending Engineer,', {bold:true, size:22})], {align:AlignmentType.RIGHT, after:20}),
+      p([tr('SCADA Circle, TGSPDCL,', {size:22})], {align:AlignmentType.RIGHT, after:20}),
+      p([tr('GTS Colony,', {size:22})], {align:AlignmentType.RIGHT, after:20}),
+      p([tr('Hyderabad - 500 045.', {size:22})], {align:AlignmentType.RIGHT, after:80}),
+
+      p([tr(memoNo, {bold:true})], {before:80, after:80}),
+
+      p([tr('Sub:\t', {bold:true}), tr(`Elecy - SCADA - Hyd – ${d.work_desc} – Sanction – Accorded - Reg.`)],
+        {before:80, after:80}),
+
+      p([tr('Ref:  1) B.P.Ms.No. 58 Dt.03.02.64.', {size:SZ_NORMAL})], {before:60, after:30, indent:720}),
+      refPara(2, 'B.P.Ms.No.874 Dt.15.09.84'),
+      refPara(3, 'S.P.O.O(CGM-(O&M))Ms.No.844, Dt.22.12.2017.'),
+      refPara(4, 'Memo.No.CGM(O&M)/SE(O&M)/DE(O&M)-I/F.No.D.O.P/D.No.230/20, Dt.21.05.20'),
+      refPara(5, ref5),
+      refPara(6, `${ref6label} ${d.estimate_no}`),
+
+      p([tr('* * *')], {align:AlignmentType.CENTER, before:100, after:100}),
+
+      bodyBullet(`In exercise of powers delegated vide reference 1st cited above, the Superintending Engineer/SCADA hereby accords approval for the proposal submitted by the ${deLines} for ${d.work_desc} for an amount of ${amtDisplay} under ${wtype} works.`),
+
+      bodyBullet(`The expenditure is chargeable to ${wtype} (A/c. No.74.1) for the year ${d.fy_full}.`),
+
+      bodyBullet(sanctionLine),
+
+      bodyBullet(`The expenditure should be met from the provision available for ${wtype} works in the budget estimate and cash grants.`),
+
+      bodyBullet(`The work shall be taken up subject to the availability of budget provision for the financial year ${d.fy_full} and cash grants.`),
+
+      bodyBullet('The concerned officers will be held responsible for any wrong or excessive estimation.'),
+
+      empty(),
+
+      // Signature row
+      new Table({
+        width: { size: 100, type: WidthType.PERCENTAGE },
+        borders: Object.fromEntries(['top','bottom','left','right','insideH','insideV'].map(k=>[k,{style:BorderStyle.NONE}])),
+        rows: [new TableRow({ children: [
+          new TableCell({
+            children: [p([tr('AE(T)         ADE(T)          DE(T)', {size:22})], {align:AlignmentType.LEFT})],
+            width: { size: 60, type: WidthType.PERCENTAGE },
+            borders: Object.fromEntries(['top','bottom','left','right'].map(k=>[k,{style:BorderStyle.NONE}])),
+          }),
+          new TableCell({
+            children: [
+              p([tr('Superintending Engineer,', {bold:true})], {align:AlignmentType.RIGHT, after:20}),
+              p([tr('SCADA/Hyderabad.', {bold:true})], {align:AlignmentType.RIGHT}),
+            ],
+            borders: Object.fromEntries(['top','bottom','left','right'].map(k=>[k,{style:BorderStyle.NONE}])),
+          }),
+        ]})]
+      }),
+
+      empty(),
+
+      p([tr('To')], {before:120, after:30}),
+      p([tr(`\t\tThe ${deLines}`)], {after:30}),
+      empty(),
+      p([tr(`\t\tCopy to the Senior Accounts Officer/SCADA/Hyd`)], {after:30}),
+      p([tr('\t\tCopy Submitted to the Chief Engineer/Operation/Metro Zone/Mint Compound, Hyderabad.')], {after:30}),
+    ];
+
+    return new Document({
+      sections: [{
+        properties: {
+          page: {
+            size: { width: 11906, height: 16838 },
+            margin: { top: 1080, bottom: 1080, left: 1080, right: 1080 }
+          }
+        },
+        children
+      }]
+    });
+  }
+
+  // CGM LETTER FORMAT
+  if (d.doc_type === 'CGM') {
+    const lrNo = `Lr.No. SE/SCADA/DE(T)/ADE(T&M)/AE(T)/F.No./D.No.${d.d_no}/${d.fy_short}, Dt.${fmtDate(d.memo_date)}.`;
+    const ref3 = d.lines_lr_full || '___';
+    const amtStr = d.amount
+      ? `Rs.${parseInt(d.amount).toLocaleString('en-IN')}/-${d.in_words ? '(' + d.in_words + ')' : ''}`
+      : '___';
+
+    const refPara = (num, text) => p(
+      [tr(`${num}) ${text}`)],
+      { before: 30, after: 30, indent: 900 }
+    );
+
+    const fromToTable = new Table({
+      width: { size: 100, type: WidthType.PERCENTAGE },
+      borders: Object.fromEntries(['top','bottom','left','right','insideH','insideV'].map(k=>[k,{style:BorderStyle.NONE}])),
+      rows: [new TableRow({ children: [
+        new TableCell({
+          children: [
+            p([tr('From')], {after:30}),
+            p([tr('The Superintending Engineer,', {bold:true})], {after:20}),
+            p([tr('SCADA/TGSPDCL,')], {after:20}),
+            p([tr('GTS Colony, Erragadda,')], {after:20}),
+            p([tr('Hyderabad.')], {after:20}),
+          ],
+          borders: Object.fromEntries(['top','bottom','left','right'].map(k=>[k,{style:BorderStyle.NONE}])),
+        }),
+        new TableCell({
+          children: [
+            p([tr('To')], {after:30}),
+            p([tr('The Chief Engineer/Operation,', {bold:true})], {after:20}),
+            p([tr('Metro Zone, TGSPDCL,')], {after:20}),
+            p([tr('Mint Compound,')], {after:20}),
+            p([tr('Hyderabad.')], {after:20}),
+          ],
+          borders: Object.fromEntries(['top','bottom','left','right'].map(k=>[k,{style:BorderStyle.NONE}])),
+        }),
+      ]})]
+    });
+
+    const children = [
+      headerTable,
+      empty(),
+      fromToTable,
+      empty(),
+      p([tr(lrNo, {bold:true})], {before:80, after:80}),
+      p([tr('Sir,')], {before:60, after:80}),
+
+      p([tr('Sub:-\t'), tr(`TGSPDCL – SCADA Circle – Hyd – Estimate for ${d.work_desc}${d.consumer_name ? ' on request of consumer '+d.consumer_name : ''} – Submitted for Necessary Sanction – Reg.`)],
+        {before:60, after:80}),
+
+      p([tr('Ref:-1) S.P.O.O.(CGM-(O&M))Ms. No.844, Dt.22.12.2017')], {before:60, after:30, indent:720}),
+      refPara(2, 'Memo.No.CGM(O&M)/SE(O&M)/DE(O&M)-I/F.No.D.O.P/D.No.230/20, Dt.21.05.20'),
+      refPara(3, ref3),
+      refPara(4, `SAP Estimate No.${d.estimate_no}`),
+
+      p([tr('* * *')], {align:AlignmentType.CENTER, before:100, after:100}),
+
+      p([tr('\tThe estimate for '),
+         tr(amtStr, {bold:true}),
+         tr(` for ${d.work_desc}${d.consumer_name ? ' on request of consumer '+d.consumer_name : ''} is herewith submitted.`)
+        ], {before:80, after:80}),
+
+      p([tr('\t\tIt is requested to arrange to sanction the above estimate at the earliest please.')],
+        {before:60, after:120}),
+
+      p([tr('Encl: 1) ' + (d.encl_desc || 'Estimate'))], {before:80, after:180}),
+
+      p([tr('Yours Sincerely,', {bold:true})], {align:AlignmentType.RIGHT, before:80, after:60}),
+      empty(),
+      p([tr('Superintending Engineer,', {bold:true})], {after:20}),
+      p([tr('SCADA/Hyderabad.')], {after:80}),
+
+      p([tr(`Copy to the Divisional Engineer/Lines/${d.division}`)], {before:80, after:20}),
+    ];
+
+    return new Document({
+      sections: [{
+        properties: {
+          page: {
+            size: { width: 11906, height: 16838 },
+            margin: { top: 1080, bottom: 1080, left: 1080, right: 1080 }
+          }
+        },
+        children
+      }]
+    });
+  }
+}
+
+// ═══════════════ SUBMIT / DOWNLOAD ═══════════════
+async function submitDoc() {
+  const d = collectData();
+  const err = validate(d);
+  if (err) { toast(err, true); return; }
+
+  const recs = getRecords();
+  d.id = Date.now();
+  recs.push(d);
+  saveRecords(recs);
+
+  await doDownload(d);
+  toast('✅ Saved & downloading!');
+}
+
+async function downloadOnly() {
+  const d = collectData();
+  const err = validate(d);
+  if (err) { toast(err, true); return; }
+  await doDownload(d);
+  toast('📄 Document downloaded!');
+}
+
+async function doDownload(d) {
+  const doc = await buildDocx(d);
+  const blob = await window.docx.Packer.toBlob(doc);
+  const typeLabel = {PM:'PM_Order', Z:'Z_Estimate', CGM:'CGM_Letter'}[d.doc_type] || 'Doc';
+  const fname = `${typeLabel}_DNo${d.d_no || '___'}_${d.estimate_no || 'Est'}_${d.division || ''}.docx`;
+  saveAs(blob, fname);
+}
+
+// ═══════════════ STORAGE ═══════════════
+function getRecords() {
+  try { return JSON.parse(localStorage.getItem(STORE)) || []; }
+  catch { return []; }
+}
+function saveRecords(arr) { localStorage.setItem(STORE, JSON.stringify(arr)); }
+
+// ═══════════════ RECORDS TABLE ═══════════════
+function renderTable() {
+  const recs = getRecords();
+  const q = (document.getElementById('search-input')?.value || '').toLowerCase();
+  const filtered = q ? recs.filter(r =>
+    [r.estimate_no, r.division, r.d_no, r.work_desc, r.subdivision]
+      .join(' ').toLowerCase().includes(q)
+  ) : recs;
+
+  document.getElementById('count-badge').textContent = recs.length;
+  const tbody = document.getElementById('records-tbody');
+  if (!filtered.length) {
+    tbody.innerHTML = '<tr><td colspan="10" class="no-data">No records found.</td></tr>';
+    return;
+  }
+  const typeClass = {PM:'type-pm', Z:'type-z', CGM:'type-cgm'};
+  const typeLabel = {PM:'PM Order', Z:'Z-Est.', CGM:'CGM Lr.'};
+  tbody.innerHTML = filtered.map(r => {
+    const amt = r.doc_type==='Z'
+      ? '₹'+parseInt(r.amount_g||0).toLocaleString('en-IN')+' (G)'
+      : r.amount ? '₹'+parseInt(r.amount).toLocaleString('en-IN') : '—';
+    const idx = recs.findIndex(x => x.id === r.id);
+    return `<tr>
+      <td>${idx+1}</td>
+      <td><span class="type-badge ${typeClass[r.doc_type]||''}">${typeLabel[r.doc_type]||r.doc_type}</span></td>
+      <td>${fmtDate(r.memo_date)}</td>
+      <td>${r.d_no||'—'}</td>
+      <td><b>${r.estimate_no||'—'}</b></td>
+      <td>${r.division||'—'}</td>
+      <td>${r.subdivision||'—'}</td>
+      <td>${amt}</td>
+      <td style="font-size:11px;color:#888">${r.saved_on||'—'}</td>
+      <td style="display:flex;gap:6px">
+        <button class="btn btn-blue" style="font-size:11px;padding:5px 10px"
+          onclick="reDownload(${idx})">⬇ docx</button>
+        <button class="btn btn-red"
+          onclick="deleteRec(${idx})">✕</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+async function reDownload(idx) {
+  const recs = getRecords();
+  if (!recs[idx]) return;
+  await doDownload(recs[idx]);
+  toast('📄 Re-downloaded!');
+}
+
+function deleteRec(idx) {
+  if (!confirm('Delete this record?')) return;
+  const recs = getRecords(); recs.splice(idx,1); saveRecords(recs); renderTable();
+  toast('Deleted');
+}
+function clearAll() {
+  if (!confirm('Delete ALL records? Cannot be undone.')) return;
+  localStorage.removeItem(STORE); renderTable(); toast('All cleared');
+}
+
+// ═══════════════ CSV EXPORT ═══════════════
+function exportCSV() {
+  const recs = getRecords();
+  if (!recs.length) { toast('No records', true); return; }
+  const cols = ['doc_type','memo_date','d_no','fy_short','estimate_no','division','subdivision',
+    'work_desc','amount','amount_g','amount_n','in_words','sanction_no','saved_on'];
+  const csv = [cols.join(','),
+    ...recs.map(r => cols.map(c => '"'+(r[c]||'').replace(/"/g,'""')+'"').join(','))
+  ].join('\n');
+  saveAs(new Blob([csv],{type:'text/csv'}), 'TGSPDCL_Estimates_'+new Date().toISOString().slice(0,10)+'.csv');
+  toast('CSV exported!');
+}
+
+// ═══════════════ CLEAR FORM ═══════════════
+function clearForm() {
+  document.querySelectorAll('#page-entry input:not([readonly]), #page-entry select, #page-entry textarea')
+    .forEach(el => { if(el.id !== 'fy_short' && el.id !== 'fy_full' && el.id !== 'works_type' && el.id !== 'encl_desc') el.value=''; });
+  document.getElementById('fy_short').value = '25-26';
+  document.getElementById('fy_full').value = '2025-2026';
+  document.getElementById('encl_desc').value = 'Estimate';
+}
+
+// ═══════════════ TOAST ═══════════════
+function toast(msg, isErr=false) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = isErr ? 'err' : '';
+  t.style.display = 'block';
+  setTimeout(() => t.style.display='none', 3200);
+}
+
+// ═══════════════ INIT ═══════════════
+window.onload = () => {
+  document.getElementById('memo_date').value = new Date().toISOString().slice(0,10);
+  setDocType('PM');
+};
+
+// Auto-assemble LR when any ref field changes
+['f_no','lines_dno','fy_short','lines_date'].forEach(id => {
+  const el = document.getElementById(id);
+  if(el) el.addEventListener('input', assembleLr);
+});
+</script>
+</body>
+</html>
