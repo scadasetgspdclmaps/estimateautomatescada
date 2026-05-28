@@ -3,721 +3,627 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>TGSPDCL SCADA – Estimate Sanction Tool</title>
+<title>TGSPDCL · SCADA Estimate Portal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
 <script src="https://unpkg.com/docx@8.5.0/build/index.js"></script>
-<script src="https://unpkg.com/file-saver@2.0.5/dist/FileSaver.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
+:root{
+  --navy:#0f1b3d;--blue:#2563eb;--blue-l:#dbeafe;--green:#10b981;--green-l:#d1fae5;
+  --amber:#f59e0b;--amber-l:#fef3c7;--red:#ef4444;--red-l:#fee2e2;--purple:#8b5cf6;--purple-l:#ede9fe;
+  --text:#0f172a;--t2:#475569;--t3:#94a3b8;--bdr:#e2e8f0;--bg:#f1f5f9;--card:#fff;
+  --sw:68px;--se:216px;--r:12px;--rs:8px;
+  --sh:0 1px 3px rgba(0,0,0,.06),0 4px 16px rgba(0,0,0,.04);
+  --shm:0 4px 12px rgba(0,0,0,.1),0 12px 32px rgba(0,0,0,.08);
+}
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Segoe UI',Arial,sans-serif;background:#f0f2f8;color:#1a1a2e;font-size:14px;min-height:100vh}
-:root{--blue:#0a2463;--mid:#1b4f8a;--acc:#3b82c4;--green:#16a34a;--red:#dc2626;--amber:#d97706;--light:#e8f0fb}
+html,body{height:100%;overflow:hidden}
+body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(--text);display:flex;font-size:14px}
 
-/* ── TOPBAR ── */
-.topbar{background:linear-gradient(135deg,#0a2463 0%,#1b4f8a 100%);
-  color:#fff;padding:0 24px;display:flex;align-items:center;height:56px;
-  box-shadow:0 3px 14px rgba(0,0,0,.35);position:sticky;top:0;z-index:100}
-.topbar-logo{display:flex;align-items:center;gap:10px}
-.topbar-logo .seal{width:36px;height:36px;border-radius:50%;
-  background:rgba(255,255,255,.18);display:flex;align-items:center;
-  justify-content:center;font-size:18px;font-weight:900;letter-spacing:-1px}
-.topbar-title{font-size:14.5px;font-weight:700;line-height:1.2}
-.topbar-sub{font-size:11px;opacity:.65;margin-top:1px}
-.topbar-right{margin-left:auto;display:flex;align-items:center;gap:12px}
-.fb-dot{display:flex;align-items:center;gap:6px;font-size:12px;
-  background:rgba(255,255,255,.12);padding:5px 12px;border-radius:20px}
-.fb-dot .dot{width:8px;height:8px;border-radius:50%;background:#6b7280}
-.fb-dot.ok .dot{background:#22c55e}
-.fb-dot.ok{background:rgba(34,197,94,.2)}
+/* ── SIDEBAR ── */
+.sb{width:var(--sw);background:var(--navy);display:flex;flex-direction:column;align-items:center;
+  padding:18px 0 14px;gap:2px;transition:width .28s cubic-bezier(.4,0,.2,1);
+  overflow:hidden;flex-shrink:0;box-shadow:3px 0 20px rgba(0,0,0,.22);position:relative;z-index:50}
+.sb:hover{width:var(--se)}
+.sb-logo{width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,#2563eb,#60a5fa);
+  display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;color:#fff;
+  flex-shrink:0;margin-bottom:18px;letter-spacing:-.5px;cursor:pointer;transition:transform .15s}
+.sb-logo:hover{transform:scale(1.05)}
+.sb-name{position:absolute;left:68px;font-weight:800;font-size:12.5px;color:#fff;
+  white-space:nowrap;opacity:0;transition:opacity .18s .1s;line-height:1.2;pointer-events:none}
+.sb:hover .sb-name{opacity:1}
+.ni{width:calc(100% - 12px);height:42px;border-radius:8px;display:flex;align-items:center;gap:11px;
+  padding:0 12px;cursor:pointer;transition:background .12s,color .12s;color:#94a3b8;
+  flex-shrink:0;position:relative;user-select:none}
+.ni:hover{background:rgba(255,255,255,.07);color:#cbd5e1}
+.ni.on{background:rgba(37,99,235,.22);color:#60a5fa}
+.ni svg{flex-shrink:0;width:19px;height:19px}
+.ni-l{white-space:nowrap;font-size:13px;font-weight:600;opacity:0;transition:opacity .18s .06s;pointer-events:none}
+.sb:hover .ni-l{opacity:1}
+.ni-b{position:absolute;right:8px;background:var(--blue);color:#fff;border-radius:20px;
+  padding:1px 7px;font-size:10px;font-weight:700;opacity:0;transition:opacity .18s .1s}
+.sb:hover .ni-b{opacity:1}
+.sdiv{width:28px;height:1px;background:rgba(255,255,255,.07);margin:5px auto;flex-shrink:0}
+.sb-bot{margin-top:auto;width:100%;padding:0 6px;display:flex;flex-direction:column;gap:2px}
+.fbi{width:8px;height:8px;border-radius:50%;background:#ef4444;flex-shrink:0;transition:background .3s}
+.fbi.ok{background:#10b981}
 
-/* ── NAV TABS ── */
-.navtabs{background:#0d1e4a;display:flex;padding:0 20px;border-bottom:2px solid #0a2463}
-.navtab{padding:11px 20px;cursor:pointer;color:#8ba5c8;font-size:13px;font-weight:600;
-  border-bottom:3px solid transparent;transition:.15s;white-space:nowrap;margin-bottom:-2px}
-.navtab.active{color:#60c4ff;border-bottom-color:#60c4ff}
-.navtab:hover{color:#c8ddf0}
+/* ── MAIN ── */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+.topbar{height:62px;background:var(--card);border-bottom:1px solid var(--bdr);
+  display:flex;align-items:center;padding:0 24px;gap:14px;flex-shrink:0;
+  box-shadow:0 1px 6px rgba(0,0,0,.04)}
+.tb-pg{font-size:15px;font-weight:800;color:var(--text);white-space:nowrap}
+.sw-wrap{flex:1;max-width:320px;position:relative;margin:0 auto}
+.sw-wrap input{width:100%;padding:8px 13px 8px 36px;border:1.5px solid var(--bdr);border-radius:999px;
+  font-size:13px;font-family:inherit;background:#f8fafc;outline:none;transition:.15s}
+.sw-wrap input:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(37,99,235,.1);background:#fff}
+.sw-ic{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--t3);pointer-events:none}
+.tb-r{display:flex;align-items:center;gap:10px;margin-left:auto}
+.tbb{display:flex;align-items:center;gap:6px;padding:7px 15px;border-radius:999px;border:none;
+  font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;transition:.15s;white-space:nowrap}
+.tbb-o{background:transparent;border:1.5px solid var(--bdr);color:var(--t2)}.tbb-o:hover{border-color:var(--blue);color:var(--blue)}
+.tbb-p{background:var(--blue);color:#fff}.tbb-p:hover{background:#1d4ed8;box-shadow:0 4px 12px rgba(37,99,235,.3)}
+.av{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,var(--navy),var(--blue));
+  display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#fff;cursor:pointer}
+.content{flex:1;overflow-y:auto;padding:22px 24px}
+.page{display:none}.page.on{display:block;animation:fu .22s ease}
+@keyframes fu{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 
-.page{display:none;animation:fadeIn .2s ease}
-.page.active{display:block}
-@keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+/* ── DASHBOARD ── */
+.hero{background:linear-gradient(135deg,#0f1b3d 0%,#1e3a8a 58%,#2563eb 100%);
+  border-radius:16px;padding:26px 30px;color:#fff;display:flex;align-items:center;
+  justify-content:space-between;margin-bottom:22px;position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;right:-50px;top:-50px;width:260px;height:260px;
+  border-radius:50%;background:rgba(255,255,255,.03);pointer-events:none}
+.hero h2{font-size:21px;font-weight:800;margin-bottom:3px}
+.hero p{font-size:12.5px;opacity:.62}
+.hpills{display:flex;gap:8px;margin-top:12px}
+.hp{display:flex;align-items:center;gap:5px;background:rgba(255,255,255,.11);
+  padding:5px 11px;border-radius:999px;font-size:12px;font-weight:600}
+.hero-r{text-align:right;z-index:1;position:relative}
+.hero-r p{font-size:11.5px;opacity:.6;margin-bottom:4px}
+.hero-r strong{font-size:12.5px;font-weight:700;opacity:.9;display:block;max-width:220px;text-align:right}
 
-/* ── LAYOUT ── */
-.layout{display:grid;grid-template-columns:320px 1fr;gap:16px;padding:18px 20px;max-width:1200px;margin:0 auto}
-@media(max-width:900px){.layout{grid-template-columns:1fr}}
-.fullpage{padding:18px 20px;max-width:1100px;margin:0 auto}
+.sg{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:22px}
+.sc{background:var(--card);border-radius:var(--r);padding:18px 20px;box-shadow:var(--sh);
+  border:1px solid var(--bdr);transition:transform .15s,box-shadow .15s}
+.sc:hover{transform:translateY(-2px);box-shadow:var(--shm)}
+.sc-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px}
+.sc-ic{width:42px;height:42px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:19px}
+.ic-b{background:var(--blue-l)}.ic-g{background:var(--green-l)}.ic-a{background:var(--amber-l)}.ic-p{background:var(--purple-l)}
+.sc-tag{font-size:11px;font-weight:700;padding:3px 8px;border-radius:999px;background:#f1f5f9;color:var(--t3)}
+.sc-n{font-size:26px;font-weight:800;line-height:1;margin-bottom:3px}
+.sc-l{font-size:12px;color:var(--t3);font-weight:500}
+.sc-s{font-size:11px;color:var(--t3);margin-top:5px}
 
-/* ── STEP SIDEBAR ── */
-.step-sidebar{display:flex;flex-direction:column;gap:8px;position:sticky;top:72px;align-self:start}
-.step-item{display:flex;align-items:flex-start;gap:10px;padding:12px 14px;
-  border-radius:10px;background:#fff;border:2px solid #e0e8f5;cursor:pointer;
-  transition:.2s;box-shadow:0 1px 4px rgba(0,0,0,.05)}
-.step-item:hover{border-color:var(--acc)}
-.step-item.active{border-color:var(--mid);background:var(--light)}
-.step-item.done{border-color:#bbf7d0;background:#f0fdf4}
-.step-num{width:26px;height:26px;border-radius:50%;background:#e0e8f5;
-  display:flex;align-items:center;justify-content:center;font-size:12px;
-  font-weight:700;color:#555;flex-shrink:0;transition:.2s}
-.step-item.active .step-num{background:var(--mid);color:#fff}
-.step-item.done .step-num{background:var(--green);color:#fff}
-.step-label{font-size:12.5px;font-weight:700;color:#0a2463;margin-bottom:2px}
-.step-desc{font-size:11px;color:#888}
+.dash-row{display:grid;grid-template-columns:1fr 290px;gap:14px;margin-bottom:22px}
+.card{background:var(--card);border-radius:var(--r);padding:20px 22px;box-shadow:var(--sh);border:1px solid var(--bdr)}
+.card-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+.card-title{font-size:13.5px;font-weight:700}
 
-/* ── FORM AREA ── */
-.form-area{display:flex;flex-direction:column;gap:14px}
+.qa{display:flex;align-items:center;gap:11px;padding:11px 14px;border-radius:9px;
+  border:1.5px solid var(--bdr);cursor:pointer;transition:.15s;margin-bottom:9px;
+  background:#fff;width:100%;text-align:left;font-family:inherit}
+.qa:hover{border-color:var(--blue);background:var(--blue-l);transform:translateX(2px)}
+.qa-ic{width:34px;height:34px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0}
+.qa-tx strong{display:block;font-size:12.5px;font-weight:700;color:var(--text)}
+.qa-tx span{font-size:11px;color:var(--t3)}
 
-/* ── DOC TYPE PILLS ── */
-.doc-type-row{display:flex;gap:10px;flex-wrap:wrap}
-.dtype{flex:1;min-width:140px;padding:14px 16px;border:2.5px solid #d0daf0;
-  border-radius:12px;cursor:pointer;background:#fff;text-align:center;transition:.2s;
-  box-shadow:0 1px 4px rgba(0,0,0,.04)}
-.dtype:hover{border-color:var(--acc);box-shadow:0 2px 10px rgba(59,130,196,.15)}
-.dtype.active{border-color:var(--mid);background:var(--light);box-shadow:0 2px 10px rgba(27,79,138,.15)}
-.dtype-icon{font-size:24px;margin-bottom:6px}
-.dtype-name{font-size:13px;font-weight:700;color:var(--blue)}
-.dtype-desc{font-size:10.5px;color:#777;margin-top:3px}
+.sec-h{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.sec-title{font-size:14px;font-weight:700}
+.see-all{font-size:12px;color:var(--blue);font-weight:600;cursor:pointer}
+.see-all:hover{text-decoration:underline}
 
-/* ── CARD ── */
-.card{background:#fff;border-radius:12px;padding:20px 22px;
-  box-shadow:0 1px 8px rgba(0,0,0,.07);border:1px solid #e8edf5}
-.card-head{display:flex;align-items:center;gap:10px;margin-bottom:16px;
-  padding-bottom:10px;border-bottom:2px solid #eef1f8}
-.card-head-icon{width:32px;height:32px;border-radius:8px;background:var(--light);
-  display:flex;align-items:center;justify-content:center;font-size:16px}
-.card-head-title{font-size:13.5px;font-weight:700;color:var(--blue)}
-.card-head-sub{font-size:11px;color:#888;margin-top:2px}
+.tc{background:var(--card);border-radius:var(--r);box-shadow:var(--sh);border:1px solid var(--bdr);overflow:hidden}
+.tbl{width:100%;border-collapse:collapse}
+.tbl thead th{background:#f8fafc;padding:10px 14px;text-align:left;font-size:11.5px;
+  font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;
+  border-bottom:1px solid var(--bdr);white-space:nowrap}
+.tbl tbody td{padding:12px 14px;border-bottom:1px solid #f1f5f9;vertical-align:middle}
+.tbl tbody tr:last-child td{border-bottom:none}
+.tbl tbody tr:hover td{background:#fafbff}
+.dcc{display:flex;align-items:center;gap:9px}
+.ta{width:32px;height:32px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;flex-shrink:0}
+.ta.pm{background:#dbeafe;color:#1d4ed8}.ta.z{background:#d1fae5;color:#065f46}.ta.cgm{background:#fef3c7;color:#92400e}
+.ct{font-size:13px;font-weight:700}.cs{font-size:11px;color:var(--t3)}
+.cm{font-family:'DM Mono',monospace;font-size:12px;color:var(--t2)}
+.badge{display:inline-flex;align-items:center;padding:3px 9px;border-radius:999px;font-size:11px;font-weight:700;white-space:nowrap}
+.b-bl{background:var(--blue-l);color:#1d4ed8}.b-gr{background:var(--green-l);color:#065f46}
+.b-am{background:var(--amber-l);color:#92400e}.b-dr{background:#fde68a;color:#b45309}
+.ab{padding:5px 11px;border-radius:6px;border:1.5px solid var(--bdr);font-family:inherit;
+  font-size:11.5px;font-weight:600;cursor:pointer;background:#fff;color:var(--t2);transition:.13s}
+.ab:hover{border-color:var(--blue);color:var(--blue)}.ab.d:hover{border-color:var(--red);color:var(--red)}
 
-/* ── GRID / FIELD ── */
+/* ── WIZARD ── */
+.wl{display:grid;grid-template-columns:1fr 300px;gap:18px;align-items:start}
+.wp{background:var(--card);border-radius:var(--r);padding:18px 22px;margin-bottom:18px;
+  box-shadow:var(--sh);border:1px solid var(--bdr)}
+.ps{display:flex;align-items:center;position:relative}
+.psi{flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;position:relative}
+.psi:not(:last-child)::after{content:'';position:absolute;top:15px;left:50%;width:100%;height:2px;background:var(--bdr);z-index:0}
+.psi.dn:not(:last-child)::after{background:var(--blue)}
+.psc{width:30px;height:30px;border-radius:50%;border:2px solid var(--bdr);background:#fff;
+  display:flex;align-items:center;justify-content:center;font-size:11.5px;font-weight:700;
+  color:var(--t3);position:relative;z-index:1;transition:.2s}
+.psi.on .psc{border-color:var(--blue);background:var(--blue);color:#fff;box-shadow:0 0 0 4px rgba(37,99,235,.14)}
+.psi.dn .psc{border-color:var(--blue);background:var(--blue);color:#fff}
+.psl{font-size:10.5px;color:var(--t3);font-weight:600;text-align:center;white-space:nowrap}
+.psi.on .psl{color:var(--blue)}
+
+.ws{display:none}.ws.on{display:block}
+.fs{background:var(--card);border-radius:var(--r);padding:22px 24px;margin-bottom:12px;box-shadow:var(--sh);border:1px solid var(--bdr)}
+.fsh{display:flex;align-items:center;gap:11px;margin-bottom:18px;padding-bottom:12px;border-bottom:1px solid var(--bdr)}
+.fsi{width:38px;height:38px;border-radius:9px;background:var(--blue-l);display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0}
+.fst{font-size:13.5px;font-weight:700}.fss{font-size:11.5px;color:var(--t3);margin-top:2px}
 .g{display:grid;gap:12px}
-.g2{grid-template-columns:1fr 1fr}
-.g3{grid-template-columns:1fr 1fr 1fr}
-.g4{grid-template-columns:1fr 1fr 1fr 1fr}
-@media(max-width:680px){.g2,.g3,.g4{grid-template-columns:1fr}}
+.g2{grid-template-columns:1fr 1fr}.g3{grid-template-columns:1fr 1fr 1fr}.g4{grid-template-columns:1fr 1fr 1fr 1fr}
+@media(max-width:880px){.g2,.g3,.g4{grid-template-columns:1fr}.sg{grid-template-columns:1fr 1fr}}
+.fl{display:flex;flex-direction:column;gap:5px}
+.fl label{font-size:11.5px;font-weight:700;color:var(--t2);display:flex;align-items:center;gap:4px}
+.fl label .req{color:var(--red)}
+.fl input,.fl select,.fl textarea{padding:9px 12px;border:1.5px solid var(--bdr);border-radius:var(--rs);
+  font-family:inherit;font-size:13px;color:var(--text);background:#fafcff;outline:none;transition:.14s}
+.fl input:focus,.fl select:focus,.fl textarea:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(37,99,235,.1);background:#fff}
+.fl input[readonly]{background:#f1f5f9;color:var(--t3);cursor:default}
+.fl textarea{resize:vertical;min-height:78px;line-height:1.6}
+.fl small{font-size:10.5px;color:var(--t3)}
+.rdv{display:flex;align-items:center;gap:8px;margin:14px 0 8px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--t3)}
+.rdv::before,.rdv::after{content:'';flex:1;height:1px;background:var(--bdr)}
 
-.field{display:flex;flex-direction:column;gap:5px}
-.field label{font-size:11.5px;font-weight:700;color:#333;display:flex;align-items:center;gap:4px}
-.field label .req{color:var(--red);font-size:12px}
-.field input,.field select,.field textarea{
-  padding:9px 12px;border:1.5px solid #cdd6e6;border-radius:8px;
-  font-size:13px;color:#1a1a2e;background:#fafcff;transition:border .15s,box-shadow .15s}
-.field input:focus,.field select:focus,.field textarea:focus{
-  outline:none;border-color:var(--acc);box-shadow:0 0 0 3px rgba(59,130,196,.12);background:#fff}
-.field input[readonly]{background:#f0f3f8;color:#666;cursor:default}
-.field textarea{resize:vertical;min-height:75px;line-height:1.6}
-.field small{font-size:10.5px;color:#999;margin-top:2px}
+.dtg{display:grid;grid-template-columns:repeat(3,1fr);gap:11px}
+.dtc{padding:14px;border:2px solid var(--bdr);border-radius:11px;cursor:pointer;transition:.18s;text-align:center;background:#fff}
+.dtc:hover{border-color:var(--blue);box-shadow:0 0 0 3px rgba(37,99,235,.07)}
+.dtc.on{border-color:var(--blue);background:var(--blue-l)}
+.dci{font-size:26px;margin-bottom:6px}
+.dcn{font-size:12.5px;font-weight:700;color:var(--text);margin-bottom:3px}
+.dcd{font-size:10.5px;color:var(--t3);line-height:1.4}
 
-.row-label{font-size:11px;font-weight:700;text-transform:uppercase;
-  letter-spacing:.8px;color:var(--acc);margin:14px 0 8px;display:flex;align-items:center;gap:6px}
-.row-label::after{content:'';flex:1;height:1px;background:#e8edf5}
+.og{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-top:11px}
+.oc{background:#f8fafc;border:1.5px solid var(--bdr);border-radius:9px;padding:12px;text-align:center}
+.oc.asgn{border-color:#bbf7d0;background:#f0fdf4}
+.or2{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--t3);margin-bottom:5px}
+.on2{font-size:12.5px;font-weight:700}.on2.e{color:var(--t3);font-weight:400;font-style:italic;font-size:11.5px}
 
-/* ── OFFICER CARDS ── */
-.officer-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:10px}
-.officer-card{background:#f5f8ff;border:1.5px solid #dde7f5;border-radius:8px;
-  padding:10px 12px;text-align:center}
-.officer-card .orank{font-size:10.5px;font-weight:700;color:var(--mid);
-  text-transform:uppercase;letter-spacing:.6px;margin-bottom:5px}
-.officer-card .oname{font-size:13px;font-weight:600;color:#1a1a2e}
-.officer-card .oname.empty{color:#bbb;font-style:italic;font-weight:400}
+.drt{border:2px solid var(--bdr);border-radius:11px;padding:15px 18px;display:flex;align-items:center;
+  gap:14px;cursor:pointer;transition:.18s;background:#fff;margin-top:6px;user-select:none}
+.drt:hover{border-color:var(--amber)}
+.drt.on{border-color:var(--amber);background:var(--amber-l)}
+.dtck{width:20px;height:20px;border-radius:5px;border:2px solid var(--bdr);display:flex;align-items:center;
+  justify-content:center;flex-shrink:0;background:#fff;transition:.18s;font-size:12px;color:transparent}
+.drt.on .dtck{background:var(--amber);border-color:var(--amber);color:#fff}
+.dr-txt h4{font-size:13px;font-weight:700}
+.dr-txt p{font-size:11.5px;color:var(--t3);margin-top:2px}
+.dr-pill{margin-left:auto;background:var(--amber);color:#fff;border-radius:999px;padding:3px 11px;font-size:11.5px;font-weight:700;display:none}
+.drt.on .dr-pill{display:block}
 
-/* ── DRAFT TOGGLE ── */
-.draft-toggle-wrap{display:flex;align-items:center;gap:14px;
-  padding:16px 20px;background:linear-gradient(135deg,#fffbeb,#fef3c7);
-  border:1.5px solid #fcd34d;border-radius:12px;cursor:pointer;
-  transition:.2s;user-select:none}
-.draft-toggle-wrap:hover{box-shadow:0 2px 10px rgba(217,119,6,.15)}
-.draft-toggle-wrap input[type=checkbox]{width:18px;height:18px;cursor:pointer;accent-color:var(--amber)}
-.draft-icon{font-size:24px}
-.draft-text h4{font-size:13.5px;font-weight:700;color:#92400e}
-.draft-text p{font-size:11.5px;color:#a16207;margin-top:2px}
-.draft-badge{margin-left:auto;padding:4px 12px;background:#d97706;color:#fff;
-  border-radius:20px;font-size:11.5px;font-weight:700;display:none}
-.draft-toggle-wrap.is-draft .draft-badge{display:block}
-.draft-toggle-wrap.is-draft{background:linear-gradient(135deg,#fef3c7,#fde68a);
-  border-color:var(--amber)}
+.snv{display:flex;justify-content:space-between;align-items:center;margin-top:14px;padding-top:14px;border-top:1px solid var(--bdr)}
+.bs{padding:9px 20px;border-radius:999px;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;transition:.14s;border:none}
+.bp{background:#f1f5f9;color:var(--t2)}.bp:hover{background:#e2e8f0}
+.bn{background:var(--blue);color:#fff}.bn:hover{background:#1d4ed8;box-shadow:0 4px 10px rgba(37,99,235,.28)}
+.bg{background:linear-gradient(135deg,var(--green),#059669);color:#fff;padding:10px 26px}.bg:hover{box-shadow:0 4px 14px rgba(16,185,129,.32)}
 
-/* ── GENERATE PANEL ── */
-.gen-panel{background:linear-gradient(135deg,#0a2463,#1b4f8a);border-radius:12px;
-  padding:20px 22px;color:#fff}
-.gen-panel h3{font-size:14px;font-weight:700;margin-bottom:4px}
-.gen-panel p{font-size:12px;opacity:.7;margin-bottom:16px}
-.gen-btns{display:flex;gap:10px;flex-wrap:wrap}
-
-/* ── BUTTONS ── */
-.btn{padding:10px 22px;border:none;border-radius:9px;font-size:13px;
-  font-weight:700;cursor:pointer;transition:.15s;display:flex;align-items:center;gap:7px}
-.b-white{background:#fff;color:var(--blue)}.b-white:hover{background:#e8f0fb}
-.b-green{background:#22c55e;color:#fff}.b-green:hover{background:#16a34a}
-.b-blue{background:var(--mid);color:#fff}.b-blue:hover{background:#153d6e}
-.b-gray{background:#e2e8f0;color:#333}.b-gray:hover{background:#cbd5e1}
-.b-red{background:var(--red);color:#fff;padding:6px 12px;font-size:11.5px}
-.b-red:hover{background:#b91c1c}
-.b-amber{background:var(--amber);color:#fff}.b-amber:hover{background:#b45309}
-.btn-row{display:flex;gap:9px;flex-wrap:wrap;margin-top:14px}
-
-/* ── MASTER DATA PAGE ── */
-.seed-hero{background:linear-gradient(135deg,#0a2463,#1b4f8a);color:#fff;
-  border-radius:14px;padding:22px 26px;margin-bottom:16px}
-.seed-hero h2{font-size:16px;font-weight:700;margin-bottom:6px}
-.seed-hero p{font-size:12.5px;opacity:.75;margin-bottom:16px;line-height:1.7}
-.seed-btns{display:flex;gap:10px;flex-wrap:wrap}
-.prog{width:100%;height:8px;background:rgba(255,255,255,.2);border-radius:4px;margin-top:12px;display:none}
-.prog-fill{height:100%;background:#22c55e;border-radius:4px;transition:width .3s}
-.prog-text{font-size:11.5px;margin-top:6px;opacity:.85;display:none}
-
-.section-tabs{display:flex;gap:0;border-bottom:2px solid #e0e8f5;margin-bottom:16px}
-.stab{padding:9px 18px;cursor:pointer;color:#7fa8cc;font-size:13px;font-weight:600;
-  border-bottom:3px solid transparent;margin-bottom:-2px;transition:.15s}
-.stab.active{color:var(--mid);border-bottom-color:var(--mid)}
-
-.atbl{width:100%;border-collapse:collapse;font-size:12.5px}
-.atbl th{background:var(--blue);color:#fff;padding:9px 13px;text-align:left;font-size:12px}
-.atbl td{padding:8px 13px;border-bottom:1px solid #eef0f5;vertical-align:middle}
-.atbl tr:hover td{background:#f5f8ff}
+.wsi{position:sticky;top:0}
+.pvc{background:var(--card);border-radius:var(--r);padding:20px;box-shadow:var(--sh);border:1px solid var(--bdr);margin-bottom:12px}
+.pv-t{font-size:13px;font-weight:700;margin-bottom:12px;color:var(--text);display:flex;align-items:center;gap:7px}
+.pvd{background:#f8fafc;border:1px solid var(--bdr);border-radius:7px;padding:14px;
+  font-family:'DM Mono',monospace;font-size:10.5px;line-height:1.7;color:var(--t2);max-height:300px;overflow-y:auto}
+.pvh{text-align:center;font-weight:700;color:var(--navy);border-bottom:1px solid var(--bdr);padding-bottom:7px;margin-bottom:7px;font-size:11px}
+.pvb{font-weight:700;color:var(--text)}.pvm{opacity:.45}
+.ip{display:flex;align-items:center;gap:7px;padding:9px 12px;border-radius:7px;background:#f8fafc;border:1px solid var(--bdr);font-size:11.5px;margin-bottom:7px}
+.ip-v{font-weight:700;font-family:'DM Mono',monospace;font-size:11.5px;margin-left:auto}
 
 /* ── RECORDS ── */
-.rec-header{display:flex;align-items:center;justify-content:space-between;
-  padding:14px 18px;border-bottom:2px solid #eef1f8}
-.rec-header h2{font-size:14.5px;font-weight:700;color:var(--blue)}
-.cnt-badge{background:var(--acc);color:#fff;border-radius:20px;
-  padding:2px 10px;font-size:12px;font-weight:700;margin-left:8px}
+.rt{background:var(--card);border-radius:var(--r);padding:14px 18px;display:flex;align-items:center;gap:10px;margin-bottom:14px;box-shadow:var(--sh);border:1px solid var(--bdr);flex-wrap:wrap}
+.si{flex:1;min-width:180px;padding:8px 12px;border:1.5px solid var(--bdr);border-radius:var(--rs);font-family:inherit;font-size:13px;outline:none;background:#fafcff}
+.si:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(37,99,235,.1)}
+.fsl{padding:8px 11px;border:1.5px solid var(--bdr);border-radius:var(--rs);font-family:inherit;font-size:13px;outline:none;background:#fff;cursor:pointer;color:var(--t2)}
+.tbtn{display:flex;align-items:center;gap:6px;padding:8px 14px;border-radius:var(--rs);border:1.5px solid var(--bdr);font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;background:#fff;color:var(--t2);transition:.13s;white-space:nowrap}
+.tbtn:hover{border-color:var(--blue);color:var(--blue)}.tbtn.d:hover{border-color:var(--red);color:var(--red)}
+.rcw{display:flex;align-items:center;gap:5px;font-size:13px;color:var(--t3);margin-left:auto}
+.rcn{font-size:19px;font-weight:800;color:var(--text)}
 
-.tbl-wrap{overflow-x:auto}
-table.rtbl{width:100%;border-collapse:collapse;font-size:12.5px}
-table.rtbl thead th{background:var(--blue);color:#fff;padding:9px 13px;text-align:left;white-space:nowrap;font-size:12px}
-table.rtbl tbody tr:hover{background:#f0f6ff}
-table.rtbl tbody td{padding:8px 13px;border-bottom:1px solid #eef0f5;white-space:nowrap}
-.no-data{text-align:center;color:#aaa;padding:40px;font-size:13px}
+/* ── MASTER DATA ── */
+.mh{background:linear-gradient(135deg,#0f1b3d,#1e3a8a);color:#fff;border-radius:var(--r);padding:20px 24px;margin-bottom:18px}
+.mh h2{font-size:16px;font-weight:800;margin-bottom:3px}
+.mh p{font-size:12px;opacity:.65;line-height:1.7;max-width:500px}
+.mh-btns{display:flex;gap:9px;flex-wrap:wrap;margin-top:12px}
+.hbw{padding:8px 18px;border-radius:999px;border:none;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;transition:.14s}
+.hbw-p{background:#fff;color:var(--navy)}.hbw-p:hover{background:#e8f0fb}
+.hbw-g{background:rgba(255,255,255,.11);color:#fff;border:1px solid rgba(255,255,255,.2)}.hbw-g:hover{background:rgba(255,255,255,.2)}
+.pb{width:100%;height:5px;background:rgba(255,255,255,.14);border-radius:3px;margin-top:12px;display:none}
+.pbf{height:100%;background:#22c55e;border-radius:3px;transition:width .3s}
+.plbl{font-size:11px;margin-top:5px;opacity:.75;display:none}
+.mts{display:flex;border-bottom:2px solid var(--bdr);margin-bottom:18px}
+.mt2{padding:9px 18px;cursor:pointer;font-size:13px;font-weight:700;color:var(--t3);border-bottom:3px solid transparent;margin-bottom:-2px;transition:.13s}
+.mt2.on{color:var(--blue);border-bottom-color:var(--blue)}
 
-.tbadge{display:inline-block;padding:3px 9px;border-radius:20px;font-size:10.5px;font-weight:700}
-.tbadge.pm{background:#dbeafe;color:#1e40af}
-.tbadge.z{background:#d1fae5;color:#065f46}
-.tbadge.cgm{background:#fef3c7;color:#92400e}
-.tbadge.draft{background:#fde68a;color:#92400e}
-.badge-rm{background:#dbeafe;color:#1e40af;padding:2px 7px;border-radius:4px;font-size:10.5px;font-weight:700}
-.badge-td{background:#d1fae5;color:#065f46;padding:2px 7px;border-radius:4px;font-size:10.5px;font-weight:700}
-
-/* ── SETUP PAGE ── */
-.setup-steps{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:18px}
-@media(max-width:680px){.setup-steps{grid-template-columns:1fr}}
-.sbox{background:#fff;border-radius:11px;padding:16px 18px;border-left:4px solid var(--acc);
-  box-shadow:0 1px 6px rgba(0,0,0,.06)}
-.sbox.done{border-left-color:var(--green)}
-.sbox h3{font-size:12.5px;font-weight:700;color:var(--blue);margin-bottom:6px;display:flex;align-items:center;gap:8px}
-.sbox p{font-size:12px;color:#555;line-height:1.7}
-.sn{width:22px;height:22px;border-radius:50%;background:var(--mid);color:#fff;
-  display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0}
-.sbox code{background:#f0f4ff;padding:2px 5px;border-radius:3px;font-size:11px;color:#1e40af}
+/* ── SETUP ── */
+.sg2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px}
+.ss{background:var(--card);border-radius:var(--r);padding:16px 18px;border-left:4px solid var(--bdr);box-shadow:var(--sh)}
+.ss.ok{border-left-color:var(--green)}.ss.pd{border-left-color:var(--amber)}
+.ssh{display:flex;align-items:center;gap:9px;margin-bottom:7px}
+.ssn{width:22px;height:22px;border-radius:50%;background:var(--blue);color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0}
+.ssn.ok{background:var(--green)}
+.ssh strong{font-size:13px;font-weight:700}
+.ssb{font-size:11.5px;color:var(--t2);line-height:1.7}
+.ssb code{background:#f1f5f9;padding:1px 5px;border-radius:4px;font-family:'DM Mono',monospace;font-size:11px;color:#1d4ed8}
 
 /* ── TOAST ── */
-#toast{position:fixed;bottom:24px;right:24px;padding:12px 20px;
-  border-radius:10px;font-size:13px;font-weight:600;display:none;z-index:9999;
-  box-shadow:0 4px 20px rgba(0,0,0,.2);max-width:360px}
-#toast.ok{background:#16a34a;color:#fff}
-#toast.err{background:var(--red);color:#fff}
-#toast.info{background:var(--mid);color:#fff}
-
-/* ── PREVIEW MODAL ── */
-#preview-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);
-  z-index:200;overflow-y:auto;padding:30px 20px}
-.preview-box{background:#fff;max-width:800px;margin:0 auto;border-radius:12px;
-  padding:40px 50px;font-family:'Times New Roman',serif;font-size:12pt;line-height:1.6;
-  box-shadow:0 8px 40px rgba(0,0,0,.3)}
-.preview-close-row{display:flex;justify-content:flex-end;gap:10px;margin-bottom:20px}
+#toast{position:fixed;bottom:22px;right:22px;padding:12px 18px;border-radius:11px;font-size:13px;
+  font-weight:700;z-index:9999;box-shadow:0 8px 28px rgba(0,0,0,.2);display:flex;align-items:center;
+  gap:9px;max-width:360px;display:none}
+#toast.ok{background:#0f172a;color:#fff;border-left:4px solid var(--green)}
+#toast.err{background:#0f172a;color:#fff;border-left:4px solid var(--red)}
+#toast.info{background:#0f172a;color:#fff;border-left:4px solid var(--blue)}
 </style>
 </head>
 <body>
-
-<!-- TOPBAR -->
-<div class="topbar">
-  <div class="topbar-logo">
-    <div class="seal">TG</div>
-    <div>
-      <div class="topbar-title">TGSPDCL – SCADA Circle</div>
-      <div class="topbar-sub">Estimate Sanction Document Generator</div>
+<!-- SIDEBAR -->
+<nav class="sb" id="sb">
+  <div class="sb-logo" onclick="sw('dashboard')">TG
+    <div class="sb-name">TGSPDCL SCADA</div>
+  </div>
+  <div class="ni on" onclick="sw('dashboard')" id="ni-dashboard">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+    <span class="ni-l">Dashboard</span>
+  </div>
+  <div class="ni" onclick="sw('newdoc')" id="ni-newdoc">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+    <span class="ni-l">New Document</span>
+  </div>
+  <div class="ni" onclick="sw('records')" id="ni-records">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+    <span class="ni-l">Records</span>
+    <span class="ni-b" id="rnb">0</span>
+  </div>
+  <div class="sdiv"></div>
+  <div class="ni" onclick="sw('master')" id="ni-master">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+    <span class="ni-l">Master Data</span>
+  </div>
+  <div class="ni" onclick="sw('setup')" id="ni-setup">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+    <span class="ni-l">Firebase Setup</span>
+  </div>
+  <div class="sb-bot">
+    <div class="sdiv" style="width:100%;margin:0"></div>
+    <div class="ni" style="margin-top:4px">
+      <div class="fbi" id="fbd"></div>
+      <span class="ni-l" id="fbl">Not Connected</span>
     </div>
   </div>
-  <div class="topbar-right">
-    <div class="fb-dot" id="fb-pill">
-      <span class="dot"></span>
-      <span id="fb-label">Not Connected</span>
-    </div>
-  </div>
-</div>
+</nav>
 
-<!-- NAV TABS -->
-<div class="navtabs">
-  <div class="navtab active" onclick="sw('doc')">📝 New Document</div>
-  <div class="navtab" onclick="sw('master')">🗃 Master Data</div>
-  <div class="navtab" onclick="sw('records')">📋 Records</div>
-  <div class="navtab" onclick="sw('setup')">🔧 Firebase Setup</div>
-</div>
-
-<!-- ══════════════════ NEW DOCUMENT ══════════════════ -->
-<div class="page active" id="page-doc">
-<div class="layout">
-
-  <!-- STEP SIDEBAR -->
-  <div class="step-sidebar">
-    <div class="step-item active" id="si-1" onclick="goStep(1)">
-      <div class="step-num" id="sn-1">1</div>
-      <div><div class="step-label">Document Type</div>
-        <div class="step-desc">PM Order / Z-Estimate / CGM</div></div>
+<!-- MAIN -->
+<div class="main">
+  <div class="topbar">
+    <span class="tb-pg" id="tbp">Dashboard</span>
+    <div class="sw-wrap">
+      <svg class="sw-ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="text" placeholder="Search estimates, divisions..." id="gs">
     </div>
-    <div class="step-item" id="si-2" onclick="goStep(2)">
-      <div class="step-num" id="sn-2">2</div>
-      <div><div class="step-label">Memo Reference</div>
-        <div class="step-desc">D.No., FY, Date</div></div>
-    </div>
-    <div class="step-item" id="si-3" onclick="goStep(3)">
-      <div class="step-num" id="sn-3">3</div>
-      <div><div class="step-label">Division Details</div>
-        <div class="step-desc">Division → Section → Officers</div></div>
-    </div>
-    <div class="step-item" id="si-4" onclick="goStep(4)">
-      <div class="step-num" id="sn-4">4</div>
-      <div><div class="step-label">References</div>
-        <div class="step-desc">Lr.No., Estimate No.</div></div>
-    </div>
-    <div class="step-item" id="si-5" onclick="goStep(5)">
-      <div class="step-num" id="sn-5">5</div>
-      <div><div class="step-label">Estimate &amp; Work</div>
-        <div class="step-desc">PM Type, Description</div></div>
-    </div>
-    <div class="step-item" id="si-6" onclick="goStep(6)">
-      <div class="step-num" id="sn-6">6</div>
-      <div><div class="step-label">Amount</div>
-        <div class="step-desc">₹ Amount, Sanction No.</div></div>
-    </div>
-    <div class="step-item" id="si-7" onclick="goStep(7)">
-      <div class="step-num" id="sn-7">7</div>
-      <div><div class="step-label">Generate</div>
-        <div class="step-desc">Draft / Final &amp; Download</div></div>
+    <div class="tb-r">
+      <button class="tbb tbb-o" onclick="sw('records')">📋 Records</button>
+      <button class="tbb tbb-p" onclick="sw('newdoc')">＋ New Document</button>
+      <div class="av" title="Naresh · TGSPDCL SCADA">N</div>
     </div>
   </div>
 
-  <!-- FORM AREA -->
-  <div class="form-area">
-
-    <!-- S1: DOC TYPE -->
-    <div class="card" id="s1">
-      <div class="card-head">
-        <div class="card-head-icon">📄</div>
-        <div><div class="card-head-title">Step 1 – Select Document Type</div>
-          <div class="card-head-sub">Choose the type of sanction document to generate</div></div>
-      </div>
-      <div class="doc-type-row">
-        <div class="dtype active" onclick="setDT('PM')" id="dt-PM">
-          <div class="dtype-icon">📋</div>
-          <div class="dtype-name">PM Order Memo</div>
-          <div class="dtype-desc">Sanction accorded via<br>Memo.No. SE/SCADA</div>
+  <div class="content">
+    <!-- DASHBOARD -->
+    <div class="page on" id="page-dashboard">
+      <div class="hero">
+        <div>
+          <h2 id="gt">Good Morning, Naresh! ☀️</h2>
+          <p>SCADA Circle · Superintending Engineer Office · Hyderabad</p>
+          <div class="hpills">
+            <div class="hp">🕐 <span id="ct">--:--</span></div>
+            <div class="hp">📅 <span id="cd">--</span></div>
+          </div>
         </div>
-        <div class="dtype" onclick="setDT('Z')" id="dt-Z">
-          <div class="dtype-icon">📐</div>
-          <div class="dtype-name">Z-Estimate Memo</div>
-          <div class="dtype-desc">Gross [G] &amp; Net [N]<br>amounts separately</div>
-        </div>
-        <div class="dtype" onclick="setDT('CGM')" id="dt-CGM">
-          <div class="dtype-icon">✉️</div>
-          <div class="dtype-name">CGM Letter</div>
-          <div class="dtype-desc">Lr.No. forwarding to<br>CE/Metro Zone</div>
+        <div class="hero-r">
+          <p>Last Activity</p>
+          <strong id="la">No records yet</strong>
         </div>
       </div>
+      <div class="sg">
+        <div class="sc"><div class="sc-top"><div class="sc-ic ic-b">📋</div><div class="sc-tag">All</div></div><div class="sc-n" id="sn1">0</div><div class="sc-l">Total Estimates</div><div class="sc-s">Saved locally</div></div>
+        <div class="sc"><div class="sc-top"><div class="sc-ic ic-g">✅</div><div class="sc-tag">Final</div></div><div class="sc-n" id="sn2">0</div><div class="sc-l">Final Copies</div><div class="sc-s">Ready for submission</div></div>
+        <div class="sc"><div class="sc-top"><div class="sc-ic ic-a">📝</div><div class="sc-tag">Draft</div></div><div class="sc-n" id="sn3">0</div><div class="sc-l">Draft Copies</div><div class="sc-s">Pending officer review</div></div>
+        <div class="sc"><div class="sc-top"><div class="sc-ic ic-p">📅</div><div class="sc-tag">Month</div></div><div class="sc-n" id="sn4">0</div><div class="sc-l">This Month</div><div class="sc-s">Estimates generated</div></div>
+      </div>
+      <div class="dash-row">
+        <div class="card"><div class="card-hd"><span class="card-title">Monthly Estimate Activity</span></div><canvas id="ac" height="155"></canvas></div>
+        <div class="card">
+          <div class="card-title" style="margin-bottom:14px">Quick Actions</div>
+          <button class="qa" onclick="qnew('PM')"><div class="qa-ic" style="background:#dbeafe">📋</div><div class="qa-tx"><strong>New PM Order</strong><span>Sanction accorded memo</span></div><span style="color:var(--t3);font-size:18px">›</span></button>
+          <button class="qa" onclick="qnew('Z')"><div class="qa-ic" style="background:#d1fae5">📐</div><div class="qa-tx"><strong>New Z-Estimate</strong><span>G &amp; N amounts</span></div><span style="color:var(--t3);font-size:18px">›</span></button>
+          <button class="qa" onclick="qnew('CGM')"><div class="qa-ic" style="background:#fef3c7">✉️</div><div class="qa-tx"><strong>New CGM Letter</strong><span>CE/Metro Zone</span></div><span style="color:var(--t3);font-size:18px">›</span></button>
+          <button class="qa" onclick="sw('master')"><div class="qa-ic" style="background:#ede9fe">🗃</div><div class="qa-tx"><strong>Master Data</strong><span>Sections &amp; officers</span></div><span style="color:var(--t3);font-size:18px">›</span></button>
+        </div>
+      </div>
+      <div class="sec-h"><span class="sec-title">Recent Records</span><span class="see-all" onclick="sw('records')">See all →</span></div>
+      <div class="tc"><table class="tbl"><thead><tr><th>Document</th><th>D.No.</th><th>Division</th><th>Estimate No.</th><th>Amount</th><th>Mode</th><th>Date</th><th></th></tr></thead>
+      <tbody id="dtb"><tr><td colspan="8" style="text-align:center;padding:36px;color:var(--t3);font-size:13px">No estimates yet. <span style="color:var(--blue);cursor:pointer;font-weight:700" onclick="sw('newdoc')">Create your first →</span></td></tr></tbody></table></div>
     </div>
 
-    <!-- S2: MEMO REF -->
-    <div class="card" id="s2">
-      <div class="card-head">
-        <div class="card-head-icon">🔖</div>
-        <div><div class="card-head-title">Step 2 – Memo / Letter Reference</div>
-          <div class="card-head-sub">Fills the Memo.No. / Lr.No. line of the document</div></div>
-      </div>
-      <div class="g g4">
-        <div class="field"><label>D.No. <span class="req">*</span></label>
-          <input id="d_no" placeholder="e.g. 183"></div>
-        <div class="field"><label>FY Short <span class="req">*</span></label>
-          <input id="fy_s" value="26-27" placeholder="26-27"></div>
-        <div class="field"><label>FY Full <span class="req">*</span></label>
-          <input id="fy_f" value="2026-2027" placeholder="2026-2027"></div>
-        <div class="field"><label>Date <span class="req">*</span></label>
-          <input id="memo_date" type="date"></div>
-      </div>
-    </div>
-
-    <!-- S3: DIVISION -->
-    <div class="card" id="s3">
-      <div class="card-head">
-        <div class="card-head-icon">📍</div>
-        <div><div class="card-head-title">Step 3 – Division Details</div>
-          <div class="card-head-sub">Select hierarchy — officer names auto-fill from database</div></div>
-      </div>
-      <div class="g g3">
-        <div class="field"><label>Division <span class="req">*</span></label>
-          <select id="sel_div" onchange="onDiv()">
-            <option value="">-- Select Division --</option></select></div>
-        <div class="field"><label>Sub-Division <span class="req">*</span></label>
-          <select id="sel_sub" onchange="onSubDiv()">
-            <option value="">-- Select Sub-Division --</option></select></div>
-        <div class="field"><label>Section <span class="req">*</span></label>
-          <select id="sel_sec" onchange="onSec()">
-            <option value="">-- Select Section --</option></select></div>
-      </div>
-      <div class="row-label">Officers (auto-filled from Master Data)</div>
-      <div class="officer-row">
-        <div class="officer-card">
-          <div class="orank">AE(T)</div>
-          <div class="oname empty" id="oc_ae">Not assigned</div>
-        </div>
-        <div class="officer-card">
-          <div class="orank">ADE(T&amp;M)</div>
-          <div class="oname empty" id="oc_ade">Not assigned</div>
-        </div>
-        <div class="officer-card">
-          <div class="orank">DE(T)</div>
-          <div class="oname empty" id="oc_de">Not assigned</div>
+    <!-- NEW DOCUMENT -->
+    <div class="page" id="page-newdoc">
+      <div class="wp">
+        <div class="ps" id="pss">
+          <div class="psi on" id="psi1"><div class="psc">1</div><div class="psl">Type</div></div>
+          <div class="psi" id="psi2"><div class="psc">2</div><div class="psl">Reference</div></div>
+          <div class="psi" id="psi3"><div class="psc">3</div><div class="psl">Division</div></div>
+          <div class="psi" id="psi4"><div class="psc">4</div><div class="psl">Lr.No.</div></div>
+          <div class="psi" id="psi5"><div class="psc">5</div><div class="psl">Work</div></div>
+          <div class="psi" id="psi6"><div class="psc">6</div><div class="psl">Amount</div></div>
+          <div class="psi" id="psi7"><div class="psc">7</div><div class="psl">Generate</div></div>
         </div>
       </div>
-    </div>
-
-    <!-- S4: REFERENCES -->
-    <div class="card" id="s4">
-      <div class="card-head">
-        <div class="card-head-icon">🔗</div>
-        <div><div class="card-head-title">Step 4 – Reference Details (Ref 5 &amp; 6)</div>
-          <div class="card-head-sub">Lines department letter + Estimate number</div></div>
-      </div>
-      <div class="g g4">
-        <div class="field"><label>Lr.No. Prefix</label>
-          <input id="lr_prefix" readonly placeholder="Auto from division"></div>
-        <div class="field"><label>F.No.</label>
-          <input id="f_no" placeholder="(blank if none)" oninput="asmLr()"></div>
-        <div class="field"><label>Lines D.No. <span class="req">*</span></label>
-          <input id="lines_dno" placeholder="e.g. 183/25-26" oninput="asmLr()"></div>
-        <div class="field"><label>Lines Lr. Date <span class="req">*</span></label>
-          <input id="lines_date" type="date" onchange="asmLr()"></div>
-      </div>
-      <div class="g g2" style="margin-top:12px">
-        <div class="field"><label>Full Lr.No. (editable)</label>
-          <input id="lines_lr" placeholder="Auto-assembled — edit if needed">
-          <small>Ref 5 in the document</small></div>
-        <div class="field"><label>Estimate No. <span class="req">*</span></label>
-          <input id="estimate_no" placeholder="e.g. 922000004372 or Y-2025-...">
-          <small>Ref 6 in the document</small></div>
-      </div>
-    </div>
-
-    <!-- S5: ESTIMATE TYPE & WORK -->
-    <div class="card" id="s5">
-      <div class="card-head">
-        <div class="card-head-icon">⚙️</div>
-        <div><div class="card-head-title">Step 5 – Estimate Type &amp; Work Description</div>
-          <div class="card-head-sub">Work description fills the Sub: line of the document exactly</div></div>
-      </div>
-      <div class="g g3">
-        <div class="field"><label>Estimate Category</label>
-          <select id="sel_cat" onchange="filterPM()">
-            <option value="">-- All --</option>
-            <option value="R&M">R&amp;M</option>
-            <option value="T&D">T&amp;D</option></select></div>
-        <div class="field"><label>PM Order Type <span class="req">*</span></label>
-          <select id="sel_pm"><option value="">-- Select --</option></select></div>
-        <div class="field"><label>Works Budget Type <span class="req">*</span></label>
-          <select id="works_type">
-            <option value="O&M">O&amp;M</option>
-            <option value="T&D">T&amp;D</option>
-            <option value="R&M">R&amp;M</option></select></div>
-      </div>
-      <div class="field" style="margin-top:12px">
-        <label>Work Description <span class="req">*</span>
-          <small style="font-weight:400;color:#999;text-transform:none">(This is the Sub: line)</small></label>
-        <textarea id="work_desc" rows="3"
-          placeholder="e.g. Rectification of 33 KV feeder break down by providing of 1 No. Straight through joint kit on 33KV Balkampet-Allwyn feeder on 13.03.2026 at 13:26 Hrs near 33/11 KV Allwyn SS in Lines Allwyn Section of Lines Allwyn Sub-Division"></textarea>
-      </div>
-      <!-- CGM only -->
-      <div id="cgm-extra" style="display:none;margin-top:12px">
-        <div class="g g2">
-          <div class="field"><label>Consumer / Requestor Name</label>
-            <input id="consumer" placeholder="e.g. Mahaboob Miya, Exec. Engineer-I, HRDCL"></div>
-          <div class="field"><label>Enclosure</label>
-            <input id="encl" value="Estimate"></div>
+      <div class="wl">
+        <div>
+          <div class="ws on" id="ws1">
+            <div class="fs"><div class="fsh"><div class="fsi">📄</div><div><div class="fst">Document Type</div><div class="fss">Select the type of sanction document</div></div></div>
+            <div class="dtg">
+              <div class="dtc on" onclick="setDT('PM')" id="dt-PM"><div class="dci">📋</div><div class="dcn">PM Order Memo</div><div class="dcd">Memo.No. SE/SCADA to DE/Lines</div></div>
+              <div class="dtc" onclick="setDT('Z')" id="dt-Z"><div class="dci">📐</div><div class="dcn">Z-Estimate Memo</div><div class="dcd">Gross [G] &amp; Net [N] amounts</div></div>
+              <div class="dtc" onclick="setDT('CGM')" id="dt-CGM"><div class="dci">✉️</div><div class="dcn">CGM Letter</div><div class="dcd">Forwarding to CE/Metro Zone</div></div>
+            </div></div>
+            <div class="snv"><div></div><button class="bs bn" onclick="gs2(2)">Continue →</button></div>
+          </div>
+          <div class="ws" id="ws2">
+            <div class="fs"><div class="fsh"><div class="fsi">🔖</div><div><div class="fst">Memo Reference</div><div class="fss">Fills the Memo.No. / Lr.No. header line</div></div></div>
+            <div class="g g4">
+              <div class="fl"><label>D.No. <span class="req">*</span></label><input id="d_no" placeholder="e.g. 183" oninput="upv()"></div>
+              <div class="fl"><label>FY Short <span class="req">*</span></label><input id="fy_s" value="26-27" oninput="upv()"></div>
+              <div class="fl"><label>FY Full</label><input id="fy_f" value="2026-2027"></div>
+              <div class="fl"><label>Date <span class="req">*</span></label><input id="memo_date" type="date" onchange="upv()"></div>
+            </div></div>
+            <div class="snv"><button class="bs bp" onclick="gs2(1)">← Back</button><button class="bs bn" onclick="gs2(3)">Continue →</button></div>
+          </div>
+          <div class="ws" id="ws3">
+            <div class="fs"><div class="fsh"><div class="fsi">📍</div><div><div class="fst">Division Details</div><div class="fss">Select hierarchy — officer names auto-fill</div></div></div>
+            <div class="g g3">
+              <div class="fl"><label>Division <span class="req">*</span></label><select id="sel_div" onchange="onDiv()"><option value="">-- Select Division --</option></select></div>
+              <div class="fl"><label>Sub-Division <span class="req">*</span></label><select id="sel_sub" onchange="onSub()"><option value="">-- Select Sub-Division --</option></select></div>
+              <div class="fl"><label>Section <span class="req">*</span></label><select id="sel_sec" onchange="onSec()"><option value="">-- Select Section --</option></select></div>
+            </div>
+            <div class="og">
+              <div class="oc" id="oc-ae"><div class="or2">AE(T)</div><div class="on2 e" id="on-ae">Not assigned</div></div>
+              <div class="oc" id="oc-ade"><div class="or2">ADE(T&amp;M)</div><div class="on2 e" id="on-ade">Not assigned</div></div>
+              <div class="oc" id="oc-de"><div class="or2">DE(T)</div><div class="on2 e" id="on-de">Not assigned</div></div>
+            </div></div>
+            <div class="snv"><button class="bs bp" onclick="gs2(2)">← Back</button><button class="bs bn" onclick="gs2(4)">Continue →</button></div>
+          </div>
+          <div class="ws" id="ws4">
+            <div class="fs"><div class="fsh"><div class="fsi">🔗</div><div><div class="fst">Reference Details (Ref 5 &amp; 6)</div><div class="fss">Lines Lr.No. and SAP Estimate Number</div></div></div>
+            <div class="g g4">
+              <div class="fl"><label>Lr.No. Prefix</label><input id="lr_prefix" readonly></div>
+              <div class="fl"><label>F.No.</label><input id="f_no" placeholder="(blank if none)" oninput="asmLr()"></div>
+              <div class="fl"><label>Lines D.No. <span class="req">*</span></label><input id="lines_dno" placeholder="e.g. 183/25-26" oninput="asmLr()"></div>
+              <div class="fl"><label>Lines Lr. Date <span class="req">*</span></label><input id="lines_date" type="date" onchange="asmLr()"></div>
+            </div>
+            <div class="g g2" style="margin-top:12px">
+              <div class="fl"><label>Full Lr.No. — Ref 5</label><input id="lines_lr" placeholder="Auto-assembled from above"><small>Edit directly if needed</small></div>
+              <div class="fl"><label>Estimate No. — Ref 6 <span class="req">*</span></label><input id="estimate_no" placeholder="e.g. 922000004372"></div>
+            </div></div>
+            <div class="snv"><button class="bs bp" onclick="gs2(3)">← Back</button><button class="bs bn" onclick="gs2(5)">Continue →</button></div>
+          </div>
+          <div class="ws" id="ws5">
+            <div class="fs"><div class="fsh"><div class="fsi">⚙️</div><div><div class="fst">Estimate Type &amp; Work Description</div><div class="fss">Sub: line is filled from Work Description exactly</div></div></div>
+            <div class="g g3">
+              <div class="fl"><label>Estimate Category</label><select id="sel_cat" onchange="fpm()"><option value="">All Types</option><option value="R&M">R&amp;M</option><option value="T&D">T&amp;D</option></select></div>
+              <div class="fl"><label>PM Order Type <span class="req">*</span></label><select id="sel_pm"><option value="">-- Select --</option></select></div>
+              <div class="fl"><label>Works Budget <span class="req">*</span></label><select id="works_type"><option value="O&M">O&amp;M</option><option value="T&D">T&amp;D</option><option value="R&M">R&amp;M</option></select></div>
+            </div>
+            <div class="fl" style="margin-top:12px">
+              <label>Work Description <span class="req">*</span> <small style="font-weight:400;color:var(--t3)">fills Sub: line exactly</small></label>
+              <textarea id="work_desc" rows="4" placeholder="e.g. Rectification of 33 KV feeder break down by providing 1 No. Straight through joint kit..."></textarea>
+            </div>
+            <div id="cgm-extra" style="display:none;margin-top:12px">
+              <div class="rdv">CGM Letter Fields</div>
+              <div class="g g2">
+                <div class="fl"><label>Consumer / Requestor</label><input id="consumer" placeholder="Name, designation"></div>
+                <div class="fl"><label>Enclosure</label><input id="encl" value="Estimate"></div>
+              </div>
+            </div></div>
+            <div class="snv"><button class="bs bp" onclick="gs2(4)">← Back</button><button class="bs bn" onclick="gs2(6)">Continue →</button></div>
+          </div>
+          <div class="ws" id="ws6">
+            <div class="fs"><div class="fsh"><div class="fsi">💰</div><div><div class="fst">Amount Details</div><div class="fss">Amount in words auto-generated (Indian numbering)</div></div></div>
+            <div id="pm-aw">
+              <div class="g g3">
+                <div class="fl"><label>Amount (₹) <span class="req">*</span></label><input id="amount" type="number" placeholder="e.g. 45561" oninput="ca()"></div>
+                <div class="fl"><label>Less Amount (₹)</label><input id="less_amt" type="number" placeholder="0"></div>
+                <div class="fl"><label>Amount in Words</label><input id="in_words" placeholder="Auto-generated"><small>Edit if needed</small></div>
+              </div>
+            </div>
+            <div id="z-aw" style="display:none">
+              <div class="g g4">
+                <div class="fl"><label>Gross [G] ₹ <span class="req">*</span></label><input id="amt_g" type="number" oninput="cz()"></div>
+                <div class="fl"><label>Net [N] ₹ <span class="req">*</span></label><input id="amt_n" type="number" oninput="cz()"></div>
+                <div class="fl"><label>In Words [G]</label><input id="words_g" placeholder="auto"></div>
+                <div class="fl"><label>In Words [N]</label><input id="words_n" placeholder="auto"></div>
+              </div>
+            </div>
+            <div id="sanc-w"><div class="rdv">Sanction Registration</div>
+              <div class="g g3">
+                <div class="fl"><label>Sanction No.</label><input id="sanc_no" placeholder="e.g. 1234"></div>
+                <div class="fl"><label>Sanction Date</label><input id="sanc_date" type="date"></div>
+                <div class="fl"><label>Account No.</label><input id="acct_no" value="74.1"></div>
+              </div>
+            </div></div>
+            <div class="snv"><button class="bs bp" onclick="gs2(5)">← Back</button><button class="bs bn" onclick="gs2(7)">Continue →</button></div>
+          </div>
+          <div class="ws" id="ws7">
+            <div class="fs"><div class="fsh"><div class="fsi">🖨️</div><div><div class="fst">Generate Sanction Copy</div><div class="fss">Choose Draft or Final, then download as Word document</div></div></div>
+            <div class="drt" id="drt" onclick="togDraft()">
+              <div class="dtck" id="dtck">✓</div>
+              <div style="font-size:26px;flex-shrink:0">📝</div>
+              <div class="dr-txt"><h4>Draft Mode</h4><p>Includes <strong>AE(T) · ADE(T&amp;M) · DE(T)</strong> signature blocks for consent officer review</p></div>
+              <div class="dr-pill">DRAFT</div>
+            </div>
+            <div style="background:#f8fafc;border:1px solid var(--bdr);border-radius:9px;padding:14px;margin-top:12px">
+              <div style="font-size:11.5px;font-weight:700;color:var(--t2);margin-bottom:10px">📋 Document Summary</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px">
+                <div class="ip"><span style="font-size:15px">📄</span><span style="color:var(--t2);flex:1;font-size:12px">Type</span><span class="ip-v" id="st">PM Order</span></div>
+                <div class="ip"><span style="font-size:15px">🏷️</span><span style="color:var(--t2);flex:1;font-size:12px">D.No.</span><span class="ip-v" id="sd">—</span></div>
+                <div class="ip"><span style="font-size:15px">🏢</span><span style="color:var(--t2);flex:1;font-size:12px">Division</span><span class="ip-v" id="sv">—</span></div>
+                <div class="ip"><span style="font-size:15px">💰</span><span style="color:var(--t2);flex:1;font-size:12px">Amount</span><span class="ip-v" id="sa">—</span></div>
+              </div>
+            </div>
+            <div style="display:flex;gap:10px;margin-top:16px">
+              <button class="bs bg" onclick="subDoc()" style="flex:1">💾 Save &amp; Download .docx</button>
+              <button onclick="dlOnly()" style="flex:1;background:#f1f5f9;color:var(--t2);border-radius:999px;padding:10px 24px;font-size:13px;font-weight:700;cursor:pointer;border:none;font-family:inherit;transition:.14s">📄 Download Only</button>
+            </div>
+            <button onclick="clrForm()" style="width:100%;margin-top:8px;padding:8px;background:transparent;border:1.5px dashed var(--bdr);border-radius:8px;font-family:inherit;font-size:12px;color:var(--t3);cursor:pointer;font-weight:600">🔄 Start Over / Clear Form</button>
+            </div>
+            <div class="snv"><button class="bs bp" onclick="gs2(6)">← Back</button><div></div></div>
+          </div>
         </div>
-      </div>
-    </div>
-
-    <!-- S6: AMOUNT -->
-    <div class="card" id="s6">
-      <div class="card-head">
-        <div class="card-head-icon">💰</div>
-        <div><div class="card-head-title">Step 6 – Amount Details</div>
-          <div class="card-head-sub">Amount in words is auto-generated</div></div>
-      </div>
-      <!-- PM / CGM amounts -->
-      <div id="pm-amt-block">
-        <div class="g g3">
-          <div class="field"><label>Amount (₹) <span class="req">*</span></label>
-            <input id="amount" type="number" placeholder="e.g. 45561" oninput="calcAmt()"></div>
-          <div class="field"><label>Less Amount (₹)</label>
-            <input id="less_amt" type="number" placeholder="0"></div>
-          <div class="field"><label>Amount in Words <span class="req">*</span></label>
-            <input id="in_words" placeholder="Rupees ... Only (auto-fill on amount entry)">
-            <small>Edit if needed</small></div>
-        </div>
-      </div>
-      <!-- Z-Estimate amounts -->
-      <div id="z-amt-block" style="display:none">
-        <div class="g g4">
-          <div class="field"><label>Gross Amount [G] (₹) <span class="req">*</span></label>
-            <input id="amt_g" type="number" oninput="calcZ()"></div>
-          <div class="field"><label>Net Amount [N] (₹) <span class="req">*</span></label>
-            <input id="amt_n" type="number" oninput="calcZ()"></div>
-          <div class="field"><label>In Words [G]</label>
-            <input id="words_g" placeholder="auto"></div>
-          <div class="field"><label>In Words [N]</label>
-            <input id="words_n" placeholder="auto"></div>
-        </div>
-      </div>
-      <!-- Sanction (PM/Z only) -->
-      <div id="sanction-block">
-        <div class="row-label">Sanction Registration</div>
-        <div class="g g3">
-          <div class="field"><label>Sanction No.</label>
-            <input id="sanc_no" placeholder="e.g. 1234"></div>
-          <div class="field"><label>Sanction Date</label>
-            <input id="sanc_date" type="date"></div>
-          <div class="field"><label>Account No.</label>
-            <input id="acct_no" value="74.1"></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- S7: GENERATE -->
-    <div class="card" id="s7">
-      <div class="card-head">
-        <div class="card-head-icon">🖨️</div>
-        <div><div class="card-head-title">Step 7 – Generate Sanction Copy</div>
-          <div class="card-head-sub">Choose Draft or Final version before downloading</div></div>
-      </div>
-
-      <!-- DRAFT TOGGLE -->
-      <div class="draft-toggle-wrap" id="draft-wrap" onclick="toggleDraft()">
-        <input type="checkbox" id="is_draft" onclick="event.stopPropagation();toggleDraft()">
-        <div class="draft-icon">📝</div>
-        <div class="draft-text">
-          <h4>Draft Mode</h4>
-          <p>Includes <strong>AE(T) · ADE(T&amp;M) · DE(T)</strong> signature blocks for consent officer review</p>
-        </div>
-        <div class="draft-badge">DRAFT</div>
-      </div>
-
-      <!-- VERSION PREVIEW -->
-      <div style="margin-top:14px;padding:12px 16px;border-radius:8px;
-        background:#f8fafc;border:1.5px solid #e0e8f5;font-size:12.5px;color:#555">
-        <div style="font-weight:700;color:var(--blue);margin-bottom:6px">📋 Document will include:</div>
-        <div id="version-preview-text" style="line-height:1.8">
-          — TGSPDCL letterhead<br>
-          — Memo.No. SE/SCADA/...<br>
-          — Sub: [work description]<br>
-          — Ref: 1–6 (standard references)<br>
-          — Body: 6 numbered clauses<br>
-          — <span id="sig-preview" style="color:var(--mid);font-weight:700">Signature: SE/SCADA only (Final version)</span><br>
-          — To: DE/Lines + Copies
-        </div>
-      </div>
-
-      <div class="gen-panel" style="margin-top:14px">
-        <h3>Ready to Download</h3>
-        <p>Word (.docx) file — opens in Microsoft Word</p>
-        <div class="gen-btns">
-          <button class="btn b-white" onclick="submitDoc()">💾 Save &amp; Download .docx</button>
-          <button class="btn" style="background:rgba(255,255,255,.15);color:#fff" onclick="dlOnly()">📄 Download Only</button>
-          <button class="btn" style="background:rgba(255,255,255,.1);color:#fff" onclick="clearForm()">🔄 Clear Form</button>
+        <!-- WIZARD SIDEBAR -->
+        <div class="wsi">
+          <div class="pvc">
+            <div class="pv-t">👁 Document Preview</div>
+            <div class="pvd">
+              <div class="pvh">Southern Power Distribution Company of T.G. Ltd.</div>
+              <div class="pvm">Office of SE, SCADA Circle, TGSPDCL, Hyderabad</div><br>
+              <div class="pvb" id="pv-memo">Memo.No.SE/SCADA/.../D.No.___/26-27, Dt.___</div><br>
+              <div><span class="pvb">Sub:</span> Elecy-SCADA-Hyd-[work]-Sanction-Accorded-Reg.</div><br>
+              <div class="pvm">Ref: 1) B.P.Ms.No. 58 Dt.03.02.64.</div>
+              <div class="pvm">     2) B.P.Ms.No.874 Dt.15.09.84</div>
+              <div class="pvm">   3-4) Standard refs (auto-filled)</div>
+              <div id="pv-r5">     5) [Lines Lr.No.]</div>
+              <div id="pv-r6">     6) Estimate No. [___]</div><br>
+              <div class="pvm">          * * *</div><br>
+              <div class="pvm">1) In exercise of powers delegated...</div>
+              <div style="color:#2563eb" id="pv-amt">   Amount: [—]</div><br>
+              <div style="color:#64748b" id="pv-sig">SE/SCADA/Hyderabad. (Final copy)</div>
+            </div>
+          </div>
+          <div class="pvc">
+            <div class="pv-t">💡 Quick Guide</div>
+            <div style="font-size:11.5px;color:var(--t3);line-height:1.9">
+              Refs 1–4: auto-filled always<br>
+              Ref 5: Lines Lr.No. (Step 4)<br>
+              Ref 6: Estimate No. (Step 4)<br>
+              Amount → Words: auto in Indian format<br>
+              <span style="color:var(--amber);font-weight:700">Draft</span> = AE+ADE+DE signatures<br>
+              <span style="color:var(--green);font-weight:700">Final</span> = SE/SCADA only
+            </div>
+          </div>
         </div>
       </div>
     </div>
-  </div>
-</div>
-</div>
 
-<!-- ══════════════════ MASTER DATA ══════════════════ -->
-<div class="page" id="page-master">
-<div class="fullpage">
-  <div class="seed-hero">
-    <h2>🚀 Master Data Management</h2>
-    <p>Seed the complete Division → Sub-Division → Section hierarchy (23 entries) and all 80+ PM Order types 
-       to Firebase with one click. Also assign AE(T), ADE(T&M), DE(T) officer names to each section.</p>
-    <div class="seed-btns">
-      <button class="btn b-white" onclick="seedAll()">⬆ Seed All Data to Firebase</button>
-      <button class="btn" style="background:rgba(255,255,255,.15);color:#fff" onclick="loadLocally()">📥 Work Locally</button>
-    </div>
-    <div class="prog" id="prog"><div class="prog-fill" id="prog-fill" style="width:0%"></div></div>
-    <div class="prog-text" id="prog-text"></div>
-  </div>
-
-  <div class="card">
-    <div class="section-tabs">
-      <div class="stab active" onclick="mTab('sections')">📂 Sections &amp; Officers</div>
-      <div class="stab" onclick="mTab('pm')">📋 PM Order Types</div>
-      <div class="stab" onclick="mTab('divs')">🏢 Divisions</div>
-    </div>
-
-    <!-- SECTIONS TAB -->
-    <div id="mtab-sections">
-      <div style="display:flex;gap:12px;margin-bottom:12px;align-items:center;flex-wrap:wrap">
-        <input type="text" id="sec-q" placeholder="🔍 Filter sections..."
-          oninput="renderSecs()"
-          style="flex:1;min-width:200px;padding:8px 12px;border:1.5px solid #cdd6e6;
-          border-radius:8px;font-size:13px">
-        <span style="font-size:12px;color:#888" id="sec-cnt"></span>
+    <!-- RECORDS -->
+    <div class="page" id="page-records">
+      <div class="rt">
+        <input class="si" id="rec-q" placeholder="🔍 Search estimate no., division, section..." oninput="rrec()">
+        <select class="fsl" id="rtf" onchange="rrec()"><option value="">All Types</option><option value="PM">PM Order</option><option value="Z">Z-Estimate</option><option value="CGM">CGM Letter</option></select>
+        <select class="fsl" id="rmf" onchange="rrec()"><option value="">Draft &amp; Final</option><option value="draft">Draft Only</option><option value="final">Final Only</option></select>
+        <button class="tbtn" onclick="expCSV()">⬇ Export CSV</button>
+        <button class="tbtn d" onclick="clrAll()">🗑 Clear All</button>
+        <div class="rcw"><span class="rcn" id="rcc">0</span>&nbsp;records</div>
       </div>
-      <div class="tbl-wrap" style="max-height:380px;overflow-y:auto">
-        <table class="atbl">
-          <thead><tr><th>Division</th><th>Sub-Division</th><th>Section</th>
-            <th>AE(T)</th><th>ADE(T&M)</th><th>DE(T)</th><th>Edit</th></tr></thead>
-          <tbody id="sec-tbody"></tbody>
-        </table>
-      </div>
-      <div class="row-label" style="margin-top:16px">Add / Update Section Officers</div>
-      <div class="g g3">
-        <div class="field"><label>Division</label>
-          <select id="add_div" onchange="addLoadSubs()">
-            <option value="">-- Select --</option></select></div>
-        <div class="field"><label>Sub-Division</label>
-          <select id="add_sub"><option value="">-- Select --</option></select></div>
-        <div class="field"><label>Section Name</label>
-          <input id="add_sec" placeholder="e.g. Allwyn"></div>
-      </div>
-      <div class="g g3" style="margin-top:10px">
-        <div class="field"><label>AE(T) Officer</label>
-          <input id="add_ae" placeholder="Full name"></div>
-        <div class="field"><label>ADE(T&M) Officer</label>
-          <input id="add_ade" placeholder="Full name"></div>
-        <div class="field"><label>DE(T) Officer</label>
-          <input id="add_de" placeholder="Full name"></div>
-      </div>
-      <button class="btn b-green" style="margin-top:12px" onclick="saveSection()">💾 Save Section</button>
-    </div>
-
-    <!-- PM ORDERS TAB -->
-    <div id="mtab-pm" style="display:none">
-      <input type="text" id="pm-q" placeholder="🔍 Search PM orders..."
-        oninput="renderPMs()"
-        style="width:100%;max-width:380px;padding:8px 12px;border:1.5px solid #cdd6e6;
-        border-radius:8px;font-size:13px;margin-bottom:12px">
-      <div class="tbl-wrap" style="max-height:420px;overflow-y:auto">
-        <table class="atbl">
-          <thead><tr><th>Type</th><th>Order Code</th><th>Name</th></tr></thead>
-          <tbody id="pm-tbody"></tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- DIVS TAB -->
-    <div id="mtab-divs" style="display:none" id="div-list">
-      <div class="tbl-wrap">
-        <table class="atbl">
-          <thead><tr><th>Division</th><th>Lr.No. Prefix</th><th>Sub-Divisions</th></tr></thead>
-          <tbody id="div-tbody"></tbody>
-        </table>
-      </div>
-    </div>
-  </div>
-</div>
-</div>
-
-<!-- ══════════════════ RECORDS ══════════════════ -->
-<div class="page" id="page-records">
-<div class="fullpage">
-  <div class="card" style="padding:0;overflow:hidden">
-    <div class="rec-header">
-      <h2>Saved Records <span class="cnt-badge" id="cnt">0</span></h2>
-      <div style="display:flex;gap:8px">
-        <button class="btn b-blue" style="font-size:11.5px;padding:7px 14px" onclick="expCSV()">⬇ Export CSV</button>
-        <button class="btn b-red" onclick="clrAll()">🗑 Clear All</button>
-      </div>
-    </div>
-    <div style="padding:10px 18px;background:#f5f7fb;border-bottom:1px solid #e0e8f5">
-      <input type="text" id="rec-q" placeholder="🔍 Search estimate no., division, section..."
-        oninput="renderRec()"
-        style="width:100%;max-width:420px;padding:8px 12px;border:1.5px solid #cdd6e6;
-        border-radius:8px;font-size:13px;background:#fff">
-    </div>
-    <div class="tbl-wrap">
-      <table class="rtbl">
-        <thead><tr><th>#</th><th>Type</th><th>Date</th><th>D.No.</th>
-          <th>Estimate No.</th><th>Division</th><th>Sub-Div</th><th>Section</th>
-          <th>Amount</th><th>Mode</th><th>Saved</th><th>Actions</th></tr></thead>
+      <div class="tc"><table class="tbl">
+        <thead><tr><th>#</th><th>Document</th><th>D.No.</th><th>Division</th><th>Section</th><th>Estimate No.</th><th>Amount</th><th>Mode</th><th>Date</th><th></th></tr></thead>
         <tbody id="rec-tbody"></tbody>
-      </table>
+      </table></div>
+    </div>
+
+    <!-- MASTER DATA -->
+    <div class="page" id="page-master">
+      <div class="mh">
+        <div>
+          <h2>🗃 Master Data Management</h2>
+          <p>Seed Division → Sub-Division → Section hierarchy (23 entries) + 50+ PM Order types to Firebase. Assign officer names per section.</p>
+          <div class="mh-btns">
+            <button class="hbw hbw-p" onclick="seedAll()">⬆ Seed All to Firebase</button>
+            <button class="hbw hbw-g" onclick="loadLocally()">📥 Load Locally</button>
+          </div>
+          <div class="pb" id="pb"><div class="pbf" id="pbf" style="width:0%"></div></div>
+          <div class="plbl" id="plbl"></div>
+        </div>
+      </div>
+      <div class="fs">
+        <div class="mts">
+          <div class="mt2 on" onclick="mtab('sec')">📂 Sections &amp; Officers</div>
+          <div class="mt2" onclick="mtab('pm')">📋 PM Order Types</div>
+          <div class="mt2" onclick="mtab('div')">🏢 Divisions</div>
+        </div>
+        <div id="mt-sec">
+          <div style="display:flex;gap:10px;align-items:center;margin-bottom:12px;flex-wrap:wrap">
+            <input class="si" id="sec-q" placeholder="🔍 Filter sections..." oninput="rsec()" style="max-width:340px">
+            <span style="font-size:12px;color:var(--t3)" id="scc"></span>
+          </div>
+          <div style="overflow-x:auto;max-height:340px;overflow-y:auto">
+            <table class="tbl"><thead><tr><th>Division</th><th>Sub-Division</th><th>Section</th><th>AE(T)</th><th>ADE(T&M)</th><th>DE(T)</th><th></th></tr></thead><tbody id="sec-tbody"></tbody></table>
+          </div>
+          <div class="rdv" style="margin-top:18px">Add / Update Officer Names</div>
+          <div class="g g3">
+            <div class="fl"><label>Division</label><select id="add_div" onchange="als()"><option value="">-- Select --</option></select></div>
+            <div class="fl"><label>Sub-Division</label><select id="add_sub"><option value="">-- Select --</option></select></div>
+            <div class="fl"><label>Section Name</label><input id="add_sec" placeholder="e.g. Allwyn"></div>
+          </div>
+          <div class="g g3" style="margin-top:10px">
+            <div class="fl"><label>AE(T) Officer Name</label><input id="add_ae" placeholder="Full name"></div>
+            <div class="fl"><label>ADE(T&M) Officer Name</label><input id="add_ade" placeholder="Full name"></div>
+            <div class="fl"><label>DE(T) Officer Name</label><input id="add_de" placeholder="Full name"></div>
+          </div>
+          <button onclick="saveSec()" class="bs bn" style="margin-top:12px;border-radius:8px">💾 Save Section</button>
+        </div>
+        <div id="mt-pm" style="display:none">
+          <input class="si" id="pm-q" placeholder="🔍 Search PM orders..." oninput="rpm()" style="max-width:360px;margin-bottom:12px">
+          <div style="overflow-x:auto;max-height:400px;overflow-y:auto">
+            <table class="tbl"><thead><tr><th>Type</th><th>Code</th><th>Name</th></tr></thead><tbody id="pm-tbody"></tbody></table>
+          </div>
+        </div>
+        <div id="mt-div" style="display:none">
+          <table class="tbl"><thead><tr><th>Division</th><th>Lr.No. Prefix</th><th>Sub-Divisions</th></tr></thead><tbody id="div-tbody"></tbody></table>
+        </div>
+      </div>
+    </div>
+
+    <!-- SETUP -->
+    <div class="page" id="page-setup">
+      <div class="sg2">
+        <div class="ss ok"><div class="ssh"><div class="ssn ok">✓</div><strong>Firebase Project Created</strong></div><div class="ssb">Project <code>ESTIMATESSCADA</code> (ID: <code>estimatesscada</code>) already created ✅. Number: <code>999986851450</code></div></div>
+        <div class="ss pd"><div class="ssh"><div class="ssn">2</div><strong>Register Web App</strong></div><div class="ssb"><a href="https://console.firebase.google.com/u/0/project/estimatesscada/settings/general" target="_blank" style="color:var(--blue);font-weight:700">Firebase Console</a> → Project Settings → Your apps → Click <code>&lt;/&gt;</code> → Nickname: <code>estimate-tool</code> → Register → Copy <code>firebaseConfig</code></div></div>
+        <div class="ss"><div class="ssh"><div class="ssn">3</div><strong>Enable Firestore</strong></div><div class="ssb">Sidebar → <b>Firestore Database</b> → Create database → <b>Test mode</b> → Region: <code>asia-south1</code> (Mumbai) → Enable</div></div>
+        <div class="ss"><div class="ssh"><div class="ssn">4</div><strong>Paste Config Below</strong></div><div class="ssb">Fill <code>apiKey</code>, <code>appId</code> from web app config. Other fields pre-filled.</div></div>
+      </div>
+      <div class="fs"><div class="fsh"><div class="fsi">🔥</div><div><div class="fst">Firebase Configuration</div><div class="fss">Project: estimatesscada — paste values from Project Settings → Your apps</div></div></div>
+        <div class="g g2">
+          <div class="fl"><label>API Key <span class="req">*</span></label><input id="cfg_key" placeholder="AIzaSy..."></div>
+          <div class="fl"><label>Auth Domain</label><input id="cfg_auth" value="estimatesscada.firebaseapp.com"></div>
+          <div class="fl"><label>Project ID</label><input id="cfg_proj" value="estimatesscada" readonly></div>
+          <div class="fl"><label>Storage Bucket</label><input id="cfg_bucket" value="estimatesscada.appspot.com"></div>
+          <div class="fl"><label>Messaging Sender ID</label><input id="cfg_msid" value="999986851450"></div>
+          <div class="fl"><label>App ID <span class="req">*</span></label><input id="cfg_appid" placeholder="1:999986851450:web:..."></div>
+        </div>
+        <div style="display:flex;gap:9px;margin-top:14px">
+          <button class="bs bn" onclick="saveFB()">🔥 Connect Firebase</button>
+          <button class="bs bp" onclick="clearFB()">✕ Disconnect</button>
+        </div>
+        <div id="fb-r" style="margin-top:10px;font-size:13px;font-weight:600"></div>
+      </div>
     </div>
   </div>
 </div>
-</div>
-
-<!-- ══════════════════ SETUP ══════════════════ -->
-<div class="page" id="page-setup">
-<div class="fullpage">
-  <div class="setup-steps">
-    <div class="sbox done">
-      <h3><div class="sn">✓</div>Firebase Project Created</h3>
-      <p>Project <code>ESTIMATESSCADA</code> (ID: <code>estimatesscada</code>) already created ✅</p>
-    </div>
-    <div class="sbox">
-      <h3><div class="sn">2</div>Register Web App</h3>
-      <p>Project Settings → <b>Your apps</b> → Click <code>&lt;/&gt;</code> Web icon → Register<br>
-         App nickname: <code>estimate-tool</code> → Copy the <code>firebaseConfig</code></p>
-    </div>
-    <div class="sbox">
-      <h3><div class="sn">3</div>Enable Firestore</h3>
-      <p>Firebase sidebar → <b>Firestore Database</b> → Create database<br>
-         → <b>Test mode</b> → Region: <b>asia-south1</b> → Enable</p>
-    </div>
-    <div class="sbox">
-      <h3><div class="sn">4</div>Paste Config Below</h3>
-      <p>Fill in <code>apiKey</code>, <code>messagingSenderId</code>, <code>appId</code><br>
-         Other fields are pre-filled for the <code>estimatesscada</code> project</p>
-    </div>
-  </div>
-
-  <div class="card">
-    <div class="card-head">
-      <div class="card-head-icon">🔥</div>
-      <div><div class="card-head-title">Firebase Config – estimatesscada</div>
-        <div class="card-head-sub">Fill these from your Firebase project settings web app config</div></div>
-    </div>
-    <div class="g g2">
-      <div class="field"><label>API Key <span class="req">*</span></label>
-        <input id="cfg_apiKey" placeholder="AIzaSy..."></div>
-      <div class="field"><label>Auth Domain</label>
-        <input id="cfg_auth" value="estimatesscada.firebaseapp.com"></div>
-      <div class="field"><label>Project ID</label>
-        <input id="cfg_proj" value="estimatesscada" readonly style="background:#f0f3f8"></div>
-      <div class="field"><label>Storage Bucket</label>
-        <input id="cfg_bucket" value="estimatesscada.appspot.com"></div>
-      <div class="field"><label>Messaging Sender ID <span class="req">*</span></label>
-        <input id="cfg_msid" value="999986851450"></div>
-      <div class="field"><label>App ID <span class="req">*</span></label>
-        <input id="cfg_appid" placeholder="1:999986851450:web:..."></div>
-    </div>
-    <div class="btn-row">
-      <button class="btn b-green" onclick="saveFB()">🔥 Connect Firebase</button>
-      <button class="btn b-red" onclick="clearFB()">✕ Disconnect</button>
-    </div>
-    <div id="fb-result" style="margin-top:12px;font-size:13px;font-weight:600"></div>
-  </div>
-</div>
-</div>
-
 <div id="toast"></div>
-
-<!-- ══════════════════ ALL DATA + LOGIC ══════════════════ -->
+<input type="hidden" id="f_ae"><input type="hidden" id="f_ade"><input type="hidden" id="f_de">
 <script>
-// ── HIERARCHY ──
-const HIER=[
-  ['Banjara Hills','Allwyn','Allwyn'],['Banjara Hills','Allwyn','IDPL'],
+const HIER=[['Banjara Hills','Allwyn','Allwyn'],['Banjara Hills','Allwyn','IDPL'],
   ['Banjara Hills','Kalyan nagar','Kalyan nagar'],['Banjara Hills','Kalyan nagar','NIMS'],
-  ['Banjara Hills','Madhapur','Madhapur'],
-  ['Central','Asifnagar','Asif nagar'],['Central','Asifnagar','Gudimalkapur'],
-  ['Central','Asifnagar','Osmania Hospital'],['Central','Hussainsagar','Hussain sagar'],
-  ['Secunderabad','Nehrunagar','Bowenpally'],['Secunderabad','Nehrunagar','James street'],
-  ['Secunderabad','Nehrunagar','R.P.Nilayam'],
+  ['Banjara Hills','Madhapur','Madhapur'],['Central','Asifnagar','Asif nagar'],
+  ['Central','Asifnagar','Gudimalkapur'],['Central','Asifnagar','Osmania Hospital'],
+  ['Central','Hussainsagar','Hussain sagar'],['Secunderabad','Nehrunagar','Bowenpally'],
+  ['Secunderabad','Nehrunagar','James street'],['Secunderabad','Nehrunagar','R.P.Nilayam'],
   ['South','Chilkalguda','Chilkalguda'],['South','Chilkalguda','Industrial Area'],
   ['South','Falaknuma','Falaknuma'],['South','Falaknuma','Salarjung'],
   ['South','Malakpet','Malakpet'],['South','Malakpet','Santhosh nagar'],
@@ -725,307 +631,318 @@ const HIER=[
   ['Protection-I','MRT NORTH','Protection Kalyannagar'],
   ['Protection-I','MRT CENTRAL','Protection Central'],
   ['Protection-II','MRT SOUTH','Protection Malakpet'],
-  ['Protection-II','MRT SOUTH','Protection Chilkalguda'],
-];
-const DIV_LR={
-  'Banjara Hills':'DEE/Lines/Tech/Banjarahills',
-  'South':'DE/Lines South','Central':'DE/Lines Central',
-  'Secunderabad':'DE/Lines Secunderabad',
-  'Protection-I':'ADE/MRT/SCADA','Protection-II':'ADE/MRT/SCADA',
-};
-const UNIQ_DIVS=[...new Set(HIER.map(h=>h[0]))];
-const UNIQ_SUBS={};
-HIER.forEach(([d,s])=>{if(!UNIQ_SUBS[d])UNIQ_SUBS[d]=[];if(!UNIQ_SUBS[d].includes(s))UNIQ_SUBS[d].push(s);});
-
-// ── PM ORDERS ──
+  ['Protection-II','MRT SOUTH','Protection Chilkalguda']];
+const DIV_LR={'Banjara Hills':'DEE/Lines/Tech/Banjarahills','South':'DE/Lines South',
+  'Central':'DE/Lines Central','Secunderabad':'DE/Lines Secunderabad',
+  'Protection-I':'ADE/MRT/SCADA','Protection-II':'ADE/MRT/SCADA'};
+const UDIVS=[...new Set(HIER.map(h=>h[0]))];
+const USUBS={};HIER.forEach(([d,s])=>{if(!USUBS[d])USUBS[d]=[];if(!USUBS[d].includes(s))USUBS[d].push(s);});
 const PM_DATA=[
   {t:"R&M",c:"PM11",n:"Repair of DTRs"},{t:"R&M",c:"PM12",n:"Repair of PTR"},
   {t:"R&M",c:"PM13",n:"Repair of CTPT"},{t:"R&M",c:"PM14",n:"Repair of Breakers"},
-  {t:"R&M",c:"PM15",n:"Repair of Capacitor Banks"},{t:"R&M",c:"PM16",n:"Repair of RMU's"},
-  {t:"R&M",c:"PM17",n:"Repair of Battery Chargers"},{t:"R&M",c:"PM18",n:"Repair of Other Protection Equipments"},
-  {t:"R&M",c:"PM19",n:"Repair of CT's"},{t:"R&M",c:"PM21",n:"Repair of PT's"},
+  {t:"R&M",c:"PM15",n:"Repair of Capacitor Banks"},{t:"R&M",c:"PM16",n:"Repair of RMUs"},
   {t:"R&M",c:"PM22",n:"Breakdown Maintenance of 33 KV Lines"},
   {t:"R&M",c:"PM23",n:"Breakdown Maintenance of 11 KV Lines"},
-  {t:"R&M",c:"PM24",n:"Breakdown Maintenance of LT Lines"},
   {t:"R&M",c:"PM26",n:"Preventive Maintenance of DTR"},{t:"R&M",c:"PM27",n:"Preventive Maintenance of PTR"},
-  {t:"R&M",c:"PM28",n:"Price Variation Order"},{t:"R&M",c:"PM29",n:"Price Variation For PTR"},
-  {t:"R&M",c:"PM31",n:"Preventive Maintenance of Breakers"},{t:"R&M",c:"PM33",n:"Overhauling of PTR"},
+  {t:"R&M",c:"PM33",n:"Overhauling of PTR"},
   {t:"R&M",c:"PM34",n:"Preventive Maintenance of 33 KV Lines"},
   {t:"R&M",c:"PM35",n:"Preventive Maintenance of 11 KV Lines"},
   {t:"R&M",c:"PM36",n:"Preventive Maintenance of LT Lines"},
   {t:"R&M",c:"PM37",n:"Preventive Maintenance of Substation Protection Equipments"},
-  {t:"R&M",c:"PM38",n:"Tree Cutting of 33KV Feeder"},{t:"R&M",c:"PM39",n:"Tree Cutting of 11KV Feeder"},
-  {t:"R&M",c:"PM40",n:"Calibration Order"},{t:"R&M",c:"PM41",n:"Tree Cutting of LT Feeder"},
+  {t:"R&M",c:"PM38",n:"Tree Cutting of 33KV Feeder"},
   {t:"R&M",c:"PM42",n:"Hired Vehicle Order"},{t:"R&M",c:"PM43",n:"Man Power Order"},
-  {t:"R&M",c:"PM44",n:"Order for Building Rents"},{t:"R&M",c:"PM45",n:"Order for Office XEROX & Water"},
-  {t:"R&M",c:"PM46",n:"Shifting of Meters from inside to outside"},
   {t:"R&M",c:"PM47",n:"Asset Dismantlement Order"},{t:"R&M",c:"PM49",n:"PTR Movement & Erection"},
-  {t:"R&M",c:"PM50",n:"Survey Report Order"},{t:"R&M",c:"PM54",n:"Drawal of Seal Bits"},
-  {t:"R&M",c:"PM55",n:"AMC for Capacitor Banks"},{t:"R&M",c:"PM56",n:"Maintenance of 33/11 KV Substations"},
-  {t:"R&M",c:"PM57",n:"Restringing of Loose lines"},{t:"R&M",c:"PM58",n:"Replacement of Damaged conductor/Cable"},
-  {t:"R&M",c:"PM59",n:"Rectification of Leaning poles"},{t:"R&M",c:"PM5A",n:"Maintenance of PTRs (AMC)"},
-  {t:"R&M",c:"PM61",n:"AMC for SCADA Equipments"},{t:"R&M",c:"PM62",n:"Painting of SS/Towers/Poles"},
-  {t:"R&M",c:"PM63",n:"Testing of Relays"},{t:"R&M",c:"PM64",n:"Maintenance of Department Vehicles"},
-  {t:"R&M",c:"PM66",n:"Net Metering Order"},{t:"R&M",c:"PM67",n:"Sub-Transportation of PSCC Poles"},
-  {t:"R&M",c:"PM68",n:"Disaster Management Order"},{t:"R&M",c:"PM69",n:"Other MRT Works"},
-  {t:"R&M",c:"PM70",n:"Replenishment Against SR"},{t:"R&M",c:"PM72",n:"Safety Measures"},
-  {t:"R&M",c:"PM75",n:"Simplified Service Connection Order"},{t:"R&M",c:"PM76",n:"Additional Load"},
-  {t:"R&M",c:"PM77",n:"Rolling Stock Order"},{t:"R&M",c:"PM80",n:"Provisional Order (T.note order)"},
-  {t:"R&M",c:"PM81",n:"Palle Pragathi Works"},{t:"R&M",c:"PM82",n:"Pattana Pragathi Works"},
-  {t:"R&M",c:"PM85",n:"Direct Acquisition Order"},{t:"R&M",c:"PM86",n:"Providing of Static/Advanced Relays"},
-  {t:"R&M",c:"PM87",n:"AMC/FMS Charges"},{t:"R&M",c:"PM88",n:"Festival Arrangements"},
-  {t:"R&M",c:"PM89",n:"Civil Works"},{t:"R&M",c:"PM91",n:"Computer/Printer Spares & Repairs"},
-  {t:"R&M",c:"PM93",n:"DTR Structure Maintenance"},{t:"R&M",c:"PM98",n:"Consultancy Charges"},
+  {t:"R&M",c:"PM55",n:"AMC for Capacitor Banks"},
+  {t:"R&M",c:"PM56",n:"Maintenance of 33/11 KV Substations"},
+  {t:"R&M",c:"PM57",n:"Restringing of Loose lines"},
+  {t:"R&M",c:"PM58",n:"Replacement of Damaged Conductor/Cable"},
+  {t:"R&M",c:"PM61",n:"AMC for SCADA Equipments"},
+  {t:"R&M",c:"PM68",n:"Disaster Management Order"},
+  {t:"R&M",c:"PM80",n:"Provisional Order"},
+  {t:"R&M",c:"PM85",n:"Direct Acquisition Order"},
+  {t:"R&M",c:"PM86",n:"Providing of Static/Advanced Relays"},
+  {t:"R&M",c:"PM88",n:"Festival Arrangements"},
+  {t:"R&M",c:"PM89",n:"Civil Works"},
   {t:"T&D",c:"985",n:"T&P Budgets"},{t:"T&D",c:"970",n:"Replenishments"},
   {t:"T&D",c:"T-2421",n:"Additional New PTR"},{t:"T&D",c:"T-2422",n:"Enhancement of PTR"},
   {t:"T&D",c:"T-2425",n:"11KV Erection of BAYS VCB"},{t:"T&D",c:"T-2426",n:"33KV Erection of BAYS VCB"},
   {t:"T&D",c:"T-2427",n:"33KV Feeder Erection"},{t:"T&D",c:"T-2430",n:"Bifurcation of 33KV Lines"},
-  {t:"T&D",c:"T-2431",n:"33KV Interlinking Lines"},{t:"T&D",c:"T-2436",n:"33KV Capacitor Banks Erection"},
-  {t:"T&D",c:"T-2438",n:"33KV Breaker Erection"},{t:"T&D",c:"T-2440",n:"33KV RMU Erection"},
-  {t:"T&D",c:"T-2442",n:"RMU Shifting"},{t:"T&D",c:"T-2443",n:"33KV Line Reconducting"},
-  {t:"T&D",c:"T-2447",n:"33/11KV SS Refurbishment"},{t:"T&D",c:"T-2448",n:"Earthing of SS"},
-  {t:"T&D",c:"T-2449",n:"Additional Earthing"},{t:"T&D",c:"T-2453",n:"33KV Intermediate Poles"},
-  {t:"T&D",c:"T-2455",n:"Power Evacuation Work"},{t:"T&D",c:"T-2457",n:"PTR Plinth Erection"},
-  {t:"T&D",c:"T-2458",n:"AB Switch Rectification/Replacement"},
-  {t:"T&D",c:"T-2459",n:"HG Fuse Rectification/Replacement"},
-  {t:"T&D",c:"T-2461",n:"33KV Damaged Poles"},{t:"T&D",c:"T-2464",n:"33KV Lines Shifting"},
-  {t:"T&D",c:"T-2469",n:"PTR Diversion SS"},
-];
+  {t:"T&D",c:"T-2440",n:"33KV RMU Erection"},{t:"T&D",c:"T-2443",n:"33KV Line Reconducting"},
+  {t:"T&D",c:"T-2447",n:"33/11KV SS Refurbishment"},{t:"T&D",c:"T-2461",n:"33KV Damaged Poles"},
+  {t:"T&D",c:"T-2469",n:"PTR Diversion SS"}];
 
-// ── STATE ──
-let db=null, docType='PM', allSecs=[], allPM=PM_DATA.slice();
-const STORE='tgspdcl_v4';
+let db=null,DT='PM',isDraft=false,allSecs=[],allPM=PM_DATA.slice(),cStep=1;
+const ST='tgspdcl_v5';
+const PAGES={dashboard:'Dashboard',newdoc:'New Document',records:'Records',master:'Master Data',setup:'Firebase Setup'};
 
-// ── TABS ──
 function sw(t){
-  document.querySelectorAll('.navtab').forEach((el,i)=>
-    el.classList.toggle('active',['doc','master','records','setup'][i]===t));
-  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
-  document.getElementById('page-'+t).classList.add('active');
-  if(t==='master')renderAll();
-  if(t==='records')renderRec();
+  document.querySelectorAll('.ni').forEach(el=>el.classList.toggle('on',el.id==='ni-'+t));
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));
+  document.getElementById('page-'+t).classList.add('on');
+  document.getElementById('tbp').textContent=PAGES[t]||t;
+  if(t==='dashboard')rdash();
+  if(t==='records')rrec();
+  if(t==='master'){rall();padivs();}
 }
+function qnew(t){setDT(t);sw('newdoc');gs2(2);}
 
-// ── STEP NAVIGATION ──
-function goStep(n){
-  document.querySelectorAll('.step-item').forEach((el,i)=>{
-    el.classList.toggle('active',i+1===n);
-  });
-  const el=document.getElementById('s'+n);
-  if(el) el.scrollIntoView({behavior:'smooth',block:'start'});
-}
-
-// ── DOC TYPE ──
-function setDT(t){
-  docType=t;
-  document.querySelectorAll('.dtype').forEach(b=>b.classList.remove('active'));
-  document.getElementById('dt-'+t).classList.add('active');
-  document.getElementById('z-amt-block').style.display=t==='Z'?'':'none';
-  document.getElementById('pm-amt-block').style.display=t==='Z'?'none':'';
-  document.getElementById('cgm-extra').style.display=t==='CGM'?'':'none';
-  document.getElementById('sanction-block').style.display=t==='CGM'?'none':'';
-}
-
-// ── DRAFT TOGGLE ──
-function toggleDraft(){
-  const cb=document.getElementById('is_draft');
-  cb.checked=!cb.checked;
-  const wrap=document.getElementById('draft-wrap');
-  wrap.classList.toggle('is-draft',cb.checked);
-  const sp=document.getElementById('sig-preview');
-  if(cb.checked){
-    sp.textContent='Signature: AE(T) · ADE(T&M) · DE(T) + SE/SCADA [DRAFT]';
-    sp.style.color='#d97706';
-  } else {
-    sp.textContent='Signature: SE/SCADA only (Final version)';
-    sp.style.color='var(--mid)';
+function gs2(n){
+  cStep=n;
+  if(n===7){
+    document.getElementById('st').textContent={PM:'PM Order',Z:'Z-Estimate',CGM:'CGM Letter'}[DT]||DT;
+    document.getElementById('sd').textContent=v('d_no')||'—';
+    document.getElementById('sv').textContent=v('sel_div')||'—';
+    const a=v('amount')||v('amt_g');
+    document.getElementById('sa').textContent=a?'₹'+parseInt(a).toLocaleString('en-IN'):'—';
   }
+  document.querySelectorAll('.ws').forEach((el,i)=>el.classList.toggle('on',i+1===n));
+  document.querySelectorAll('.psi').forEach((el,i)=>{
+    el.classList.toggle('on',i+1===n);el.classList.toggle('dn',i+1<n);
+  });
 }
 
-// ── FIREBASE ──
-function saveFB(){
-  const cfg={
-    apiKey:v('cfg_apiKey'),authDomain:v('cfg_auth'),
-    projectId:v('cfg_proj'),storageBucket:v('cfg_bucket'),
-    messagingSenderId:v('cfg_msid'),appId:v('cfg_appid'),
-  };
-  if(!cfg.apiKey||!cfg.appId){toast('API Key and App ID required',true);return;}
-  localStorage.setItem('fb_cfg',JSON.stringify(cfg));
-  connectFB(cfg);
-}
-function connectFB(cfg){
-  try{
-    try{firebase.app().delete();}catch(e){}
-    firebase.initializeApp(cfg);
-    db=firebase.firestore();
-    db.collection('_t').limit(1).get()
-      .then(()=>{fbStatus(true);loadFromFB();setR('✅ Connected to estimatesscada!','#166534');})
-      .catch(e=>{fbStatus(false);setR('❌ '+e.message,'#b91c1c');});
-  }catch(e){fbStatus(false);setR('❌ '+e.message,'#b91c1c');}
-}
-function clearFB(){localStorage.removeItem('fb_cfg');db=null;fbStatus(false);toast('Disconnected');}
-function fbStatus(ok){
-  const p=document.getElementById('fb-pill'),l=document.getElementById('fb-label');
-  l.textContent=ok?'Firebase Connected':'Not Connected';
-  p.className='fb-dot'+(ok?' ok':'');
-  document.getElementById('no-fb-warn')&&(document.getElementById('no-fb-warn').style.display=ok?'none':'');
-}
-function setR(msg,color){const el=document.getElementById('fb-result');el.textContent=msg;el.style.color=color;}
-function loadFBSaved(){
-  const s=localStorage.getItem('fb_cfg');if(!s)return;
-  const c=JSON.parse(s);
-  ['apiKey','authDomain','projectId','storageBucket','messagingSenderId','appId'].forEach(k=>{
-    const idMap={apiKey:'cfg_apiKey',authDomain:'cfg_auth',projectId:'cfg_proj',
-                 storageBucket:'cfg_bucket',messagingSenderId:'cfg_msid',appId:'cfg_appid'};
-    const el=document.getElementById(idMap[k]);
-    if(el&&c[k]) el.value=c[k];
-  });
-  if(c.apiKey&&c.appId)connectFB(c);
+function setDT(t){
+  DT=t;
+  document.querySelectorAll('.dtc').forEach(b=>b.classList.remove('on'));
+  document.getElementById('dt-'+t).classList.add('on');
+  document.getElementById('z-aw').style.display=t==='Z'?'':'none';
+  document.getElementById('pm-aw').style.display=t==='Z'?'none':'';
+  document.getElementById('cgm-extra').style.display=t==='CGM'?'':'none';
+  document.getElementById('sanc-w').style.display=t==='CGM'?'none':'';
+  upv();
 }
 
-// ── SEED ──
-async function seedAll(){
-  if(!db){toast('Connect Firebase first',true);return;}
-  if(!confirm(`Seed ${HIER.length} sections + ${PM_DATA.length} PM orders to Firebase?\nThis overwrites existing data.`))return;
-  const prog=document.getElementById('prog'),txt=document.getElementById('prog-text');
-  prog.style.display='';txt.style.display='';
-  let done=0,total=HIER.length+PM_DATA.length;
-  function upd(){done++;const p=Math.round(done/total*100);
-    document.getElementById('prog-fill').style.width=p+'%';
-    txt.textContent=`Seeding ${done}/${total}...`;}
-  const b1=db.batch();
-  HIER.forEach(([d,s,sec])=>{
-    const id=(d+'-'+s+'-'+sec).replace(/[^a-zA-Z0-9-]/g,'_');
-    b1.set(db.collection('sections').doc(id),{division:d,subdivision:s,section:sec,ae:'',ade:'',de:''});
-    upd();
-  });
-  await b1.commit();
-  const b2=db.batch();
-  PM_DATA.forEach(p=>{
-    b2.set(db.collection('pm_orders').doc(p.c.replace(/[^a-zA-Z0-9-]/g,'_')),
-           {est_type:p.t,order_type:p.c,name:p.n});
-    upd();
-  });
-  await b2.commit();
-  prog.style.display='none';txt.textContent='✅ Done!';
-  toast('✅ All data seeded!');
-  await loadFromFB();
+function togDraft(){
+  isDraft=!isDraft;
+  document.getElementById('drt').classList.toggle('on',isDraft);
+  document.getElementById('dtck').style.color=isDraft?'#fff':'transparent';
+  document.getElementById('pv-sig').textContent=isDraft
+    ?'AE(T)  ·  ADE(T&M)  ·  DE(T)   |   SE/SCADA (Draft)'
+    :'SE/SCADA/Hyderabad. (Final copy)';
+  document.getElementById('pv-sig').style.color=isDraft?'#f59e0b':'#64748b';
 }
 
-async function loadFromFB(){
-  if(!db)return loadLocally();
-  try{
-    const[s,p]=await Promise.all([db.collection('sections').get(),db.collection('pm_orders').get()]);
-    allSecs=s.docs.map(d=>({id:d.id,...d.data()}));
-    if(p.docs.length)allPM=p.docs.map(d=>({c:d.data().order_type,t:d.data().est_type,n:d.data().name}));
-    populateDivs();renderAll();toast('Data loaded from Firebase');
-  }catch(e){loadLocally();}
+function pdivs(){
+  const el=document.getElementById('sel_div');if(!el)return;
+  const c=el.value;el.innerHTML='<option value="">-- Select Division --</option>';
+  UDIVS.forEach(d=>el.add(new Option(d,d)));if(c)el.value=c;
 }
-function loadLocally(){
-  allSecs=HIER.map(([d,s,sec])=>({division:d,subdivision:s,section:sec,ae:'',ade:'',de:''}));
-  allPM=PM_DATA.slice();
-  populateDivs();renderAll();
-}
-
-// ── FORM DROPDOWNS ──
-function populateDivs(){
-  ['sel_div','add_div'].forEach(id=>{
-    const el=document.getElementById(id);if(!el)return;
-    const c=el.value;
-    el.innerHTML='<option value="">-- Select --</option>';
-    UNIQ_DIVS.forEach(d=>el.add(new Option(d,d)));
-    if(c)el.value=c;
-  });
+function padivs(){
+  const el=document.getElementById('add_div');if(!el)return;
+  el.innerHTML='<option value="">-- Select --</option>';
+  UDIVS.forEach(d=>el.add(new Option(d,d)));
 }
 function onDiv(){
   const d=v('sel_div');
   document.getElementById('lr_prefix').value=DIV_LR[d]||'';
   const ss=document.getElementById('sel_sub');
   ss.innerHTML='<option value="">-- Select Sub-Division --</option>';
-  (UNIQ_SUBS[d]||[]).forEach(s=>ss.add(new Option(s,s)));
+  (USUBS[d]||[]).forEach(s=>ss.add(new Option(s,s)));
   document.getElementById('sel_sec').innerHTML='<option value="">-- Select Section --</option>';
-  clearOff(); asmLr();
+  clrOff();asmLr();
 }
-function onSubDiv(){
+function onSub(){
   const d=v('sel_div'),s=v('sel_sub');
   const ss=document.getElementById('sel_sec');
   ss.innerHTML='<option value="">-- Select Section --</option>';
-  const secs=[...new Set(allSecs.filter(x=>x.division===d&&x.subdivision===s).map(x=>x.section))];
-  secs.forEach(sec=>ss.add(new Option(sec,sec)));
-  clearOff();
+  [...new Set(allSecs.filter(x=>x.division===d&&x.subdivision===s).map(x=>x.section))]
+    .forEach(sec=>ss.add(new Option(sec,sec)));
+  clrOff();
 }
 function onSec(){
   const d=v('sel_div'),s=v('sel_sub'),sec=v('sel_sec');
-  const found=allSecs.find(x=>x.division===d&&x.subdivision===s&&x.section===sec);
-  const ae=found?.ae||'',ade=found?.ade||'',de=found?.de||'';
-  ['oc_ae','oc_ade','oc_de'].forEach((id,i)=>{
-    const val=[ae,ade,de][i];
-    const el=document.getElementById(id);
-    el.textContent=val||'Not assigned';
-    el.className='oname'+(val?'':' empty');
+  const f=allSecs.find(x=>x.division===d&&x.subdivision===s&&x.section===sec);
+  ['ae','ade','de'].forEach(k=>{
+    const val=f?.[k]||'';
+    document.getElementById('f_'+k).value=val;
+    document.getElementById('on-'+k).textContent=val||'Not assigned';
+    document.getElementById('on-'+k).className='on2'+(val?'':' e');
+    document.getElementById('oc-'+k).className='oc'+(val?' asgn':'');
   });
-  document.getElementById('f_ae').value=ae;
-  document.getElementById('f_ade').value=ade;
-  document.getElementById('f_de').value=de;
 }
-function clearOff(){
-  ['oc_ae','oc_ade','oc_de'].forEach(id=>{
-    document.getElementById(id).textContent='Not assigned';
-    document.getElementById(id).className='oname empty';
+function clrOff(){
+  ['ae','ade','de'].forEach(k=>{
+    document.getElementById('f_'+k).value='';
+    document.getElementById('on-'+k).textContent='Not assigned';
+    document.getElementById('on-'+k).className='on2 e';
+    document.getElementById('oc-'+k).className='oc';
   });
-  ['f_ae','f_ade','f_de'].forEach(id=>document.getElementById(id)&&(document.getElementById(id).value=''));
 }
-// hidden fields for officers
-document.body.insertAdjacentHTML('beforeend',
-  '<input type="hidden" id="f_ae"><input type="hidden" id="f_ade"><input type="hidden" id="f_de">');
-
-function filterPM(){
+function als(){
+  const d=document.getElementById('add_div').value;
+  const s=document.getElementById('add_sub');
+  s.innerHTML='<option value="">-- Select --</option>';
+  (USUBS[d]||[]).forEach(x=>s.add(new Option(x,x)));
+}
+function fpm(){
   const cat=v('sel_cat'),s=document.getElementById('sel_pm'),c=s.value;
   s.innerHTML='<option value="">-- Select --</option>';
-  (cat?allPM.filter(p=>p.t===cat):allPM).forEach(p=>s.add(new Option(`${p.c} – ${p.n}`,p.c)));
+  (cat?allPM.filter(p=>p.t===cat):allPM).forEach(p=>s.add(new Option(p.c+' – '+p.n,p.c)));
   if(c)s.value=c;
 }
 
-// ── LR ASSEMBLY ──
 function asmLr(){
-  const prefix=v('lr_prefix'),fno=v('f_no'),dno=v('lines_dno'),fys=v('fy_s'),dt=v('lines_date');
-  if(!prefix)return;
-  let lr=prefix+'/F.'+(fno||'')+'/D.No.'+(dno||'___')+'/'+fys;
-  if(dt)lr+=',Dt.'+fmtD(dt);
+  const pfx=v('lr_prefix'),fno=v('f_no'),dno=v('lines_dno'),fys=v('fy_s'),dt=v('lines_date');
+  if(!pfx)return;
+  let lr=pfx+'/F.'+(fno||'')+'/D.No.'+(dno||'___')+'/'+fys;
+  if(dt)lr+=',Dt.'+fd(dt);
   document.getElementById('lines_lr').value=lr;
+  upv();
 }
-['f_no','lines_dno','fy_s'].forEach(id=>{
-  const el=document.getElementById(id);
-  if(el)el.addEventListener('input',asmLr);
-});
-document.getElementById('lines_date').addEventListener('change',asmLr);
 
-// ── AMOUNT WORDS ──
-function numW(n){
-  if(!n||isNaN(n))return '';n=Math.round(+n);
-  const o=['','One','Two','Three','Four','Five','Six','Seven','Eight','Nine',
-    'Ten','Eleven','Twelve','Thirteen','Fourteen','Fifteen','Sixteen','Seventeen','Eighteen','Nineteen'];
+function upv(){
+  const dno=v('d_no')||'___',fys=v('fy_s')||'__',dt=v('memo_date'),lr=v('lines_lr'),est=v('estimate_no');
+  const lbl=DT==='CGM'?'Lr.No.':'Memo.No.';
+  document.getElementById('pv-memo').textContent=lbl+'SE/SCADA/DE(T)/ADE(T&M)/AE(T)/F.No./D.No.'+dno+'/'+fys+',Dt.'+(fd(dt)||'___');
+  document.getElementById('pv-r5').textContent='     5) '+(lr||'[Lines Lr.No.]');
+  document.getElementById('pv-r6').textContent='     6) Estimate No. '+(est||'[___]');
+  const a=v('amount')||v('amt_g');
+  document.getElementById('pv-amt').textContent='   Amount: '+(a?'Rs.'+parseInt(a).toLocaleString('en-IN')+'/-':'[—]');
+}
+
+function nW(n){
+  if(!n||isNaN(n))return'';n=Math.round(+n);
+  const o=['','One','Two','Three','Four','Five','Six','Seven','Eight','Nine','Ten',
+    'Eleven','Twelve','Thirteen','Fourteen','Fifteen','Sixteen','Seventeen','Eighteen','Nineteen'];
   const t=['','','Twenty','Thirty','Forty','Fifty','Sixty','Seventy','Eighty','Ninety'];
-  function w(x){if(!x)return '';if(x<20)return o[x];
+  function w(x){if(!x)return'';if(x<20)return o[x];
     if(x<100)return t[Math.floor(x/10)]+(x%10?' '+o[x%10]:'');
     return o[Math.floor(x/100)]+' Hundred'+(x%100?' '+w(x%100):'');}
   let r='',cr=Math.floor(n/10000000);n%=10000000;
   const lk=Math.floor(n/100000);n%=100000;const th=Math.floor(n/1000);n%=1000;
   if(cr)r+=w(cr)+' Crore ';if(lk)r+=w(lk)+' Lakh ';
   if(th)r+=w(th)+' Thousand ';if(n)r+=w(n);
-  return 'Rupees '+r.trim()+' Only';
+  return'Rupees '+r.trim()+' Only';
 }
-function calcAmt(){const a=+v('amount')||0;document.getElementById('in_words').value=a?numW(a):'';}
-function calcZ(){
-  const g=+v('amt_g')||0,n=+v('amt_n')||0;
-  document.getElementById('words_g').value=g?numW(g):'';
-  document.getElementById('words_n').value=n?numW(n):'';
+function ca(){const a=+v('amount')||0;document.getElementById('in_words').value=a?nW(a):'';upv();}
+function cz(){
+  document.getElementById('words_g').value=nW(+v('amt_g')||0);
+  document.getElementById('words_n').value=nW(+v('amt_n')||0);
+  upv();
 }
 
-// ── COLLECT / VALIDATE ──
-function collect(){
-  return{
-    doc_type:docType,is_draft:document.getElementById('is_draft').checked,
+async function buildDoc(d){
+  const{Document,Paragraph,TextRun,AlignmentType,BorderStyle,Table,TableRow,TableCell,WidthType,UnderlineType}=window.docx;
+  const F='Times New Roman',N=24;
+  const NO={style:BorderStyle.NONE};const NB={top:NO,bottom:NO,left:NO,right:NO};
+  const TR=(tx,o={})=>new TextRun({text:tx,font:F,size:o.sz||N,bold:!!o.b,italics:!!o.i,
+    underline:o.u?{type:UnderlineType.SINGLE}:undefined});
+  const P=(ch,o={})=>new Paragraph({children:Array.isArray(ch)?ch:[ch],
+    alignment:o.al||AlignmentType.LEFT,spacing:{before:o.bf||0,after:o.af||60},
+    indent:o.in?{left:o.in}:undefined});
+  const BLK=()=>P([TR('')],{af:60});
+  const mLn=d.doc_type==='CGM'
+    ?'Lr.No. SE/SCADA/DE(T)/ADE(T&M)/AE(T)/F.No./D.No.'+d.d_no+'/'+d.fy_s+', Dt.'+fd(d.memo_date)+'.'
+    :'Memo.No.SE/SCADA/DE(T)/ADE(T&M)/AE(T)/F.No./D.No.'+d.d_no+'/'+d.fy_s+',Dt.'+fd(d.memo_date)+'.';
+  const deLn='Divisional Engineer/Lines/'+d.division;
+  const wt=d.works_type||'O&M';
+  let aR;
+  if(d.doc_type==='Z'){
+    aR=[TR('Rs.'+parseInt(d.amt_g).toLocaleString('en-IN')+'/-',{b:true}),
+      TR('('+d.words_g+') & '),TR('Rs.'+parseInt(d.amt_n).toLocaleString('en-IN')+'/-',{b:true}),
+      TR('('+d.words_n+')',{b:true})];
+  }else{
+    aR=[TR('Rs.'+parseInt(d.amount).toLocaleString('en-IN')+'/-(',{b:true}),
+      TR(d.in_words,{b:true}),TR(')',{b:true})];
+  }
+  const hdr=new Table({width:{size:100,type:WidthType.PERCENTAGE},
+    borders:{top:{style:BorderStyle.SINGLE,size:6,color:'003366'},bottom:{style:BorderStyle.SINGLE,size:6,color:'003366'},left:{style:BorderStyle.SINGLE,size:6,color:'003366'},right:{style:BorderStyle.SINGLE,size:6,color:'003366'},insideH:NO,insideV:{style:BorderStyle.SINGLE,size:6,color:'003366'}},
+    rows:[new TableRow({children:[
+      new TableCell({width:{size:1440,type:WidthType.DXA},
+        children:[P([TR('TGSPDCL',{b:true,sz:18})],{al:AlignmentType.CENTER,bf:20,af:6}),
+          P([TR('Southern',{sz:13})],{al:AlignmentType.CENTER,af:2}),
+          P([TR('Power Dist.',{sz:13})],{al:AlignmentType.CENTER,af:2}),
+          P([TR('Co. of T.G.',{sz:13})],{al:AlignmentType.CENTER,af:20})],
+        borders:{top:NO,bottom:NO,left:NO,right:{style:BorderStyle.SINGLE,size:6,color:'003366'}}}),
+      new TableCell({children:[
+        P([TR('Southern Power Distribution Company of T.G. Ltd.',{b:true,sz:26})],{al:AlignmentType.CENTER,bf:60,af:16}),
+        P([TR('"Electricity Saved is Electricity Produced"',{i:true,sz:20})],{al:AlignmentType.CENTER,af:60})],
+        borders:NB}),
+    ]})]});
+  let sigT;
+  if(d.is_draft){
+    const lt='AE(T)'+(d.ae?' ('+d.ae+')':'')+' ADE(T&M)'+(d.ade?' ('+d.ade+')':'')+' DE(T)'+(d.de?' ('+d.de+')':'');
+    sigT=new Table({width:{size:100,type:WidthType.PERCENTAGE},borders:{top:NO,bottom:NO,left:NO,right:NO,insideH:NO,insideV:NO},
+      rows:[new TableRow({children:[
+        new TableCell({width:{size:60,type:WidthType.PERCENTAGE},children:[P([TR(lt)],{bf:300})],borders:NB}),
+        new TableCell({children:[
+          P([TR('Superintending Engineer,',{b:true})],{al:AlignmentType.RIGHT,bf:300,af:20}),
+          P([TR('SCADA/Hyderabad.',{b:true})],{al:AlignmentType.RIGHT})],borders:NB}),
+      ]})]});
+  }else{
+    sigT=new Table({width:{size:100,type:WidthType.PERCENTAGE},borders:{top:NO,bottom:NO,left:NO,right:NO,insideH:NO,insideV:NO},
+      rows:[new TableRow({children:[
+        new TableCell({width:{size:50,type:WidthType.PERCENTAGE},children:[P([TR('')])],borders:NB}),
+        new TableCell({children:[
+          P([TR('Superintending Engineer,',{b:true})],{al:AlignmentType.RIGHT,bf:300,af:20}),
+          P([TR('SCADA/Hyderabad.',{b:true})],{al:AlignmentType.RIGHT})],borders:NB}),
+      ]})]});
+  }
+  const pg={properties:{page:{size:{width:11906,height:16838},margin:{top:1080,bottom:1080,left:1260,right:1080}}}};
+  if(d.doc_type==='PM'||d.doc_type==='Z'){
+    const rP=(n,tx)=>P([TR(n+') '+tx)],{bf:30,af:30,in:1080});
+    const bI=(n,runs)=>new Paragraph({children:[TR(n+')  '),...(Array.isArray(runs)?runs:[TR(runs)])],
+      alignment:AlignmentType.JUSTIFIED,spacing:{before:80,after:80},indent:{left:360}});
+    const sL=d.sanc_no
+      ?'The estimate is technically sanctioned and registered as sanction No.'+d.sanc_no+'/'+d.fy_s+' Dt.'+fd(d.sanc_date)+' for the financial year '+d.fy_f+'.'
+      :'The estimate is technically sanctioned and registered as sanction No.____________/'+d.fy_s+' Dt.____________ for the financial year '+d.fy_f+'.';
+    return new Document({sections:[{...pg,children:[
+      hdr,BLK(),
+      P([TR('Office of the')],{al:AlignmentType.RIGHT,af:20}),
+      P([TR('Superintending Engineer,',{b:true})],{al:AlignmentType.RIGHT,af:20}),
+      P([TR('SCADA Circle, TGSPDCL,')],{al:AlignmentType.RIGHT,af:20}),
+      P([TR('GTS Colony,')],{al:AlignmentType.RIGHT,af:20}),
+      P([TR('Hyderabad - 500 045.')],{al:AlignmentType.RIGHT,af:100}),
+      P([TR(mLn,{b:true,u:true})],{bf:60,af:100}),
+      P([TR('Sub:	',{b:true}),TR('Elecy - SCADA- Hyd - '+d.work_desc+' - Sanction - Accorded - Reg.')],{bf:60,af:80,al:AlignmentType.JUSTIFIED}),
+      P([TR('Ref: 1) B.P.Ms.No. 58 Dt.03.02.64.')],{bf:60,af:30,in:720}),
+      rP(2,'B.P.Ms.No.874 Dt.15.09.84'),
+      rP(3,'S.P.O.O(CGM-(O&M))Ms.No.844, Dt.22.12.2017.'),
+      rP(4,'Mem.No.CGM(O&M)/SE(O&M)/DE(O&M)-I/F.No.D.O.P/D.No.230/20, Dt. 21.05.20'),
+      rP(5,d.lines_lr||'___'),
+      rP(6,(d.doc_type==='Z'?'Z-Estimate No.':'Estimate No.')+' '+d.estimate_no),
+      P([TR('* * *')],{al:AlignmentType.CENTER,bf:100,af:100}),
+      bI(1,[TR('In exercise of powers delegated vide reference 1'),TR('st',{sz:18}),TR(' cited above, the Superintending Engineer/SCADA hereby accords approval for the proposal submitted by the '+deLn+' for '+d.work_desc+' for an amount of '),...aR,TR(' under '),TR(wt,{b:true}),TR(' works.')]),
+      bI(2,[TR('The expenditure is chargeable to '),TR(wt,{b:true}),TR(' (A/c. No.'+(d.acct_no||'74.1')+') for the year '+d.fy_f+'.')]),
+      bI(3,[TR(sL)]),
+      bI(4,[TR('The expenditure should be met from the provision available for '),TR(wt,{b:true}),TR(' works in the budget estimate and cash grants.')]),
+      bI(5,[TR('The work shall be taken up subject to the availability of budget provision for the financial year '),TR(d.fy_f,{b:true}),TR(' and cash grants.')]),
+      bI(6,[TR('The concerned officers will be held responsible for any wrong or excessive estimation.')]),
+      BLK(),sigT,BLK(),
+      P([TR('To',{b:true})],{bf:120,af:20}),
+      P([TR('	The '+deLn)],{af:20}),
+      P([TR('	Copy to the Senior Accounts Officer/SCADA/Hyd')],{af:20}),
+      P([TR('	Copy Submitted to the Chief Engineer/Operation/Metro Zone/Mint Compound, Hyderabad.')]),
+    ]}]});
+  }
+  const ftT=new Table({width:{size:100,type:WidthType.PERCENTAGE},borders:{top:NO,bottom:NO,left:NO,right:NO,insideH:NO,insideV:NO},
+    rows:[new TableRow({children:[
+      new TableCell({children:[P([TR('From',{b:true})],{af:30}),P([TR('The Superintending Engineer,',{b:true})],{af:20}),P([TR('SCADA/TGSPDCL,')],{af:20}),P([TR('GTS Colony, Erragadda,')],{af:20}),P([TR('Hyderabad.')])],borders:NB}),
+      new TableCell({children:[P([TR('To',{b:true})],{af:30}),P([TR('The Chief Engineer/Operation,',{b:true})],{af:20}),P([TR('Metro Zone, TGSPDCL,')],{af:20}),P([TR('Mint Compound,')],{af:20}),P([TR('Hyderabad.')])],borders:NB}),
+    ]})]});
+  const cA=d.amount?[TR('Rs.'+parseInt(d.amount).toLocaleString('en-IN')+'/-(',{b:true}),TR(d.in_words,{b:true}),TR(')',{b:true})]:[TR('Rs.___/-')];
+  return new Document({sections:[{...pg,children:[
+    hdr,BLK(),ftT,BLK(),
+    P([TR(mLn,{b:true})],{bf:60,af:80}),P([TR('Sir,')],{bf:60,af:80}),
+    P([TR('Sub:-	',{b:true}),TR('TGSPDCL - SCADA Circle - Hyd - Estimate for '+d.work_desc+(d.consumer?' on request of consumer '+d.consumer:'')+' - Submitted for Necessary Sanction - Reg.')],{bf:60,af:80,al:AlignmentType.JUSTIFIED}),
+    P([TR('Ref:-1) S.P.O.O.(CGM-(O&M))Ms. No.844, Dt.22.12.2017')],{bf:60,af:30,in:720}),
+    P([TR('2) Memo.No.CGM(O&M)/SE(O&M)/DE(O&M)-I/F.No.D.O.P/D.No.230/20, Dt.21.05.20')],{af:30,in:1080}),
+    P([TR('3) '+d.lines_lr)],{af:30,in:1080}),
+    P([TR('4) SAP Estimate No.'+d.estimate_no)],{af:30,in:1080}),
+    P([TR('* * *')],{al:AlignmentType.CENTER,bf:100,af:100}),
+    P([TR('	The estimate for '),...cA,TR(' for '+d.work_desc+(d.consumer?' on request of consumer '+d.consumer:'')+' is herewith submitted.')],{bf:80,af:80,al:AlignmentType.JUSTIFIED}),
+    P([TR('		It is requested to arrange to sanction the above estimate at the earliest please.')],{bf:60,af:140}),
+    P([TR('Encl: 1) '+(d.encl||'Estimate'))],{bf:60,af:200}),
+    P([TR('Yours Sincerely,',{b:true})],{al:AlignmentType.RIGHT,bf:60,af:60}),
+    BLK(),
+    P([TR('Superintending Engineer,',{b:true})],{af:20}),
+    P([TR('SCADA/Hyderabad.')],{af:80}),
+    P([TR('Copy to the '+deLn)],{bf:80}),
+  ]}]});
+}
+
+function col(){
+  return{doc_type:DT,is_draft:isDraft,
     d_no:v('d_no'),fy_s:v('fy_s'),fy_f:v('fy_f'),memo_date:v('memo_date'),
     division:v('sel_div'),subdivision:v('sel_sub'),section:v('sel_sec'),
     ae:v('f_ae'),ade:v('f_ade'),de:v('f_de'),
@@ -1037,442 +954,275 @@ function collect(){
     amt_g:v('amt_g'),amt_n:v('amt_n'),words_g:v('words_g'),words_n:v('words_n'),
     sanc_no:v('sanc_no'),sanc_date:v('sanc_date'),acct_no:v('acct_no')||'74.1',
     consumer:v('consumer'),encl:v('encl')||'Estimate',
-    saved_on:new Date().toLocaleString('en-IN'),id:Date.now(),
-  };
+    saved_on:new Date().toLocaleString('en-IN'),id:Date.now()};
 }
-function valid(d){
-  if(!d.d_no)return'D.No. is required';
-  if(!d.memo_date)return'Date is required';
-  if(!d.division)return'Division is required';
-  if(!d.estimate_no)return'Estimate No. is required';
-  if(!d.work_desc)return'Work Description is required';
-  if(d.doc_type==='PM'&&!d.amount)return'Amount is required';
+function vld(d){
+  if(!d.d_no)return'D.No. required';if(!d.memo_date)return'Date required';
+  if(!d.division)return'Division required';if(!d.estimate_no)return'Estimate No. required';
+  if(!d.work_desc)return'Work Description required';
+  if(d.doc_type==='PM'&&!d.amount)return'Amount required';
   if(d.doc_type==='Z'&&(!d.amt_g||!d.amt_n))return'G & N amounts required';
   return null;
 }
-
-// ── BUILD DOCX ──
-async function buildDocx(d){
-  const{Document,Paragraph,TextRun,AlignmentType,BorderStyle,
-        Table,TableRow,TableCell,WidthType,UnderlineType}=window.docx;
-  const F='Times New Roman',N=24;
-  const NONE={style:BorderStyle.NONE};
-  const NB={top:NONE,bottom:NONE,left:NONE,right:NONE};
-  const BX={top:{style:BorderStyle.SINGLE,size:6,color:'003366'},
-            bottom:{style:BorderStyle.SINGLE,size:6,color:'003366'},
-            left:{style:BorderStyle.SINGLE,size:6,color:'003366'},
-            right:{style:BorderStyle.SINGLE,size:6,color:'003366'}};
-
-  const TR=(text,o={})=>new TextRun({text,font:F,size:o.sz||N,bold:!!o.b,italics:!!o.i,
-    underline:o.u?{type:UnderlineType.SINGLE}:undefined});
-  const P=(ch,o={})=>new Paragraph({
-    children:Array.isArray(ch)?ch:[ch],
-    alignment:o.al||AlignmentType.LEFT,
-    spacing:{before:o.bf||0,after:o.af||60},
-    indent:o.in?{left:o.in}:undefined,
-  });
-  const BLK=()=>P([TR('')],{af:60});
-
-  const memoLine=d.doc_type==='CGM'
-    ?`Lr.No. SE/SCADA/DE(T)/ADE(T&M)/AE(T)/F.No./D.No.${d.d_no}/${d.fy_s}, Dt.${fmtD(d.memo_date)}.`
-    :`Memo.No.SE/SCADA/DE(T)/ADE(T&M)/AE(T)/F.No./D.No.${d.d_no}/${d.fy_s},Dt.${fmtD(d.memo_date)}.`;
-
-  const deLines=`Divisional Engineer/Lines/${d.division}`;
-  const wt=d.works_type||'O&M';
-  const acct=d.acct_no||'74.1';
-  const fyF=d.fy_f||'2026-2027';
-  const fyS=d.fy_s||'26-27';
-
-  // LETTERHEAD TABLE
-  const hdrTbl=new Table({
-    width:{size:100,type:WidthType.PERCENTAGE},
-    borders:{top:BX.top,bottom:BX.bottom,left:BX.left,right:BX.right,insideH:NONE,insideV:BX.left},
-    rows:[new TableRow({children:[
-      new TableCell({
-        width:{size:1440,type:WidthType.DXA},
-        children:[
-          P([TR('TGSPDCL',{b:true,sz:20})],{al:AlignmentType.CENTER,bf:40,af:10}),
-          P([TR('Southern',{sz:14})],{al:AlignmentType.CENTER,af:4}),
-          P([TR('Power',{sz:14})],{al:AlignmentType.CENTER,af:4}),
-          P([TR('Distribution',{sz:14})],{al:AlignmentType.CENTER,af:4}),
-          P([TR('Co. of T.G.',{sz:14})],{al:AlignmentType.CENTER,af:40}),
-        ],
-        borders:{top:NONE,bottom:NONE,left:NONE,right:{style:BorderStyle.SINGLE,size:6,color:'003366'}},
-        verticalAlign:'center',
-      }),
-      new TableCell({
-        children:[
-          P([TR('Southern Power Distribution Company of T.G. Ltd.',{b:true,sz:26})],
-            {al:AlignmentType.CENTER,bf:60,af:20}),
-          P([TR('"Electricity Saved is Electricity Produced"',{i:true,sz:20})],
-            {al:AlignmentType.CENTER,af:60}),
-        ],
-        borders:{top:NONE,bottom:NONE,left:NONE,right:NONE},
-      }),
-    ]})]
-  });
-
-  // AMOUNT RUNS
-  let amtRuns;
-  if(d.doc_type==='Z'){
-    amtRuns=[
-      TR('Rs.'+parseInt(d.amt_g).toLocaleString('en-IN')+'/-',{b:true}),
-      TR('('+d.words_g+') & '),
-      TR('Rs.'+parseInt(d.amt_n).toLocaleString('en-IN')+'/-',{b:true}),
-      TR('('+d.words_n+')',{b:true}),
-    ];
-  }else{
-    amtRuns=[
-      TR('Rs.'+parseInt(d.amount).toLocaleString('en-IN')+'/-(',{b:true}),
-      TR(d.in_words,{b:true}),TR(')',{b:true}),
-    ];
-  }
-
-  // SIGNATURE TABLE — Draft vs Final
-  let sigTable;
-  if(d.is_draft){
-    // Draft: AE(T) ADE(T&M) DE(T) on left + SE on right
-    const aeText=d.ae?`AE(T)\n${d.ae}`:'AE(T)';
-    const adeText=d.ade?`ADE(T&M)\n${d.ade}`:'ADE(T&M)';
-    const deText=d.de?`DE(T)\n${d.de}`:'DE(T)';
-    sigTable=new Table({
-      width:{size:100,type:WidthType.PERCENTAGE},
-      borders:{top:NONE,bottom:NONE,left:NONE,right:NONE,insideH:NONE,insideV:NONE},
-      rows:[
-        new TableRow({children:[
-          new TableCell({
-            width:{size:70,type:WidthType.PERCENTAGE},
-            children:[
-              P([TR(aeText,{sz:N})],{bf:300,af:60}),
-            ],
-            borders:NB,
-          }),
-          new TableCell({
-            children:[P([TR('')],{})],borders:NB,
-          }),
-        ]}),
-        new TableRow({children:[
-          new TableCell({
-            children:[P([TR(adeText,{sz:N})],{af:60})],borders:NB,
-          }),
-          new TableCell({
-            children:[
-              P([TR('Superintending Engineer,',{b:true})],{al:AlignmentType.RIGHT,af:20}),
-              P([TR('SCADA/Hyderabad.',{b:true})],{al:AlignmentType.RIGHT}),
-            ],
-            borders:NB,
-          }),
-        ]}),
-        new TableRow({children:[
-          new TableCell({
-            children:[P([TR(deText,{sz:N})],{af:20})],borders:NB,
-          }),
-          new TableCell({children:[P([TR('')])],borders:NB}),
-        ]}),
-      ]
-    });
-  }else{
-    // Final: only SE/SCADA
-    sigTable=new Table({
-      width:{size:100,type:WidthType.PERCENTAGE},
-      borders:{top:NONE,bottom:NONE,left:NONE,right:NONE,insideH:NONE,insideV:NONE},
-      rows:[new TableRow({children:[
-        new TableCell({width:{size:50,type:WidthType.PERCENTAGE},
-          children:[P([TR('')])],borders:NB}),
-        new TableCell({
-          children:[
-            P([TR('Superintending Engineer,',{b:true})],{al:AlignmentType.RIGHT,bf:300,af:20}),
-            P([TR('SCADA/Hyderabad.',{b:true})],{al:AlignmentType.RIGHT}),
-          ],borders:NB
-        }),
-      ]})]
-    });
-  }
-
-  if(d.doc_type==='PM'||d.doc_type==='Z'){
-    const ref5=d.lines_lr||'___';
-    const estLbl=d.doc_type==='Z'?'Z-Estimate No.':'Estimate No.';
-    const sLine=d.sanc_no
-      ?`The estimate is technically sanctioned and registered as sanction No.${d.sanc_no}/${fyS} Dt.${fmtD(d.sanc_date)} for the financial year ${fyF}.`
-      :`The estimate is technically sanctioned and registered as sanction No.____________/${fyS} Dt.____________ for the financial year ${fyF}.`;
-
-    const rP=(n,txt)=>P([TR(`${n}) ${txt}`)],{bf:30,af:30,in:1080});
-    const bItem=(n,runs)=>new Paragraph({
-      children:[TR(`${n})  `),...(Array.isArray(runs)?runs:[TR(runs)])],
-      alignment:AlignmentType.JUSTIFIED,spacing:{before:80,after:80},indent:{left:360},
-    });
-
-    return new Document({sections:[{
-      properties:{page:{size:{width:11906,height:16838},margin:{top:1080,bottom:1080,left:1260,right:1080}}},
-      children:[
-        hdrTbl, BLK(),
-        P([TR('Office of the',{sz:N})],{al:AlignmentType.RIGHT,af:20}),
-        P([TR('Superintending Engineer,',{b:true})],{al:AlignmentType.RIGHT,af:20}),
-        P([TR('SCADA Circle, TGSPDCL,')],{al:AlignmentType.RIGHT,af:20}),
-        P([TR('GTS Colony,')],{al:AlignmentType.RIGHT,af:20}),
-        P([TR('Hyderabad - 500 045.')],{al:AlignmentType.RIGHT,af:100}),
-        P([TR(memoLine,{b:true,u:true})],{bf:60,af:100}),
-        P([TR('Sub:\t',{b:true}),
-           TR(`Elecy - SCADA- Hyd - ${d.work_desc} - Sanction - Accorded - Reg.`)],
-          {bf:60,af:80,al:AlignmentType.JUSTIFIED}),
-        P([TR('Ref: 1) B.P.Ms.No. 58 Dt.03.02.64.')],{bf:60,af:30,in:720}),
-        rP(2,'B.P.Ms.No.874 Dt.15.09.84'),
-        rP(3,'S.P.O.O(CGM-(O&M))Ms.No.844, Dt.22.12.2017.'),
-        rP(4,'Mem.No.CGM(O&M)/SE(O&M)/DE(O&M)-I/F.No.D.O.P/D.No.230/20, Dt. 21.05.20'),
-        rP(5,ref5),
-        rP(6,`${estLbl} ${d.estimate_no}`),
-        P([TR('* * *')],{al:AlignmentType.CENTER,bf:100,af:100}),
-        bItem(1,[TR('In exercise of powers delegated vide reference 1'),
-                 TR('st',{sz:18}),
-                 TR(` cited above, the Superintending Engineer/SCADA hereby accords approval for the proposal submitted by the ${deLines} for ${d.work_desc} for an amount of `),
-                 ...amtRuns,TR(` under `),TR(wt,{b:true}),TR(' works.')]),
-        bItem(2,[TR('The expenditure is chargeable to '),TR(wt,{b:true}),
-                 TR(` (A/c. No.${acct}) for the year ${fyF}.`)]),
-        bItem(3,[TR(sLine)]),
-        bItem(4,[TR('The expenditure should be met from the provision available for '),
-                 TR(wt,{b:true}),TR(' works in the budget estimate and cash grants.')]),
-        bItem(5,[TR('The work shall be taken up subject to the availability of budget provision for the financial year '),
-                 TR(fyF,{b:true}),TR(' and cash grants.')]),
-        bItem(6,[TR('The concerned officers will be held responsible for any wrong or excessive estimation.')]),
-        BLK(),
-        sigTable,
-        BLK(),
-        P([TR('To',{b:true})],{bf:120,af:20}),
-        P([TR(`\tThe ${deLines}`)],{af:20}),
-        P([TR('\tCopy to the Senior Accounts Officer/SCADA/Hyd')],{af:20}),
-        P([TR('\tCopy Submitted to the Chief Engineer/Operation/Metro Zone/Mint Compound, Hyderabad.')]),
-      ]
-    }]});
-  }
-
-  // CGM LETTER
-  const fromTo=new Table({
-    width:{size:100,type:WidthType.PERCENTAGE},
-    borders:{top:NONE,bottom:NONE,left:NONE,right:NONE,insideH:NONE,insideV:NONE},
-    rows:[new TableRow({children:[
-      new TableCell({children:[
-        P([TR('From',{b:true})],{af:30}),P([TR('The Superintending Engineer,',{b:true})],{af:20}),
-        P([TR('SCADA/TGSPDCL,')],{af:20}),P([TR('GTS Colony, Erragadda,')],{af:20}),P([TR('Hyderabad.')]),
-      ],borders:NB}),
-      new TableCell({children:[
-        P([TR('To',{b:true})],{af:30}),P([TR('The Chief Engineer/Operation,',{b:true})],{af:20}),
-        P([TR('Metro Zone, TGSPDCL,')],{af:20}),P([TR('Mint Compound,')],{af:20}),P([TR('Hyderabad.')]),
-      ],borders:NB}),
-    ]})]
-  });
-  const cgmAmt=d.amount?[TR('Rs.'+parseInt(d.amount).toLocaleString('en-IN')+'/-(',{b:true}),
-    TR(d.in_words,{b:true}),TR(')',{b:true})]:[TR('Rs.___/-')];
-  return new Document({sections:[{
-    properties:{page:{size:{width:11906,height:16838},margin:{top:1080,bottom:1080,left:1260,right:1080}}},
-    children:[
-      hdrTbl,BLK(),fromTo,BLK(),
-      P([TR(memoLine,{b:true})],{bf:60,af:80}),
-      P([TR('Sir,')],{bf:60,af:80}),
-      P([TR('Sub:-\t',{b:true}),TR(`TGSPDCL - SCADA Circle - Hyd - Estimate for ${d.work_desc}${d.consumer?' on request of consumer '+d.consumer:''} - Submitted for Necessary Sanction - Reg.`)],
-        {bf:60,af:80,al:AlignmentType.JUSTIFIED}),
-      P([TR('Ref:-1) S.P.O.O.(CGM-(O&M))Ms. No.844, Dt.22.12.2017')],{bf:60,af:30,in:720}),
-      P([TR('2) Memo.No.CGM(O&M)/SE(O&M)/DE(O&M)-I/F.No.D.O.P/D.No.230/20, Dt.21.05.20')],{af:30,in:1080}),
-      P([TR('3) '+d.lines_lr)],{af:30,in:1080}),
-      P([TR('4) SAP Estimate No.'+d.estimate_no)],{af:30,in:1080}),
-      P([TR('* * *')],{al:AlignmentType.CENTER,bf:100,af:100}),
-      P([TR('\tThe estimate for '),...cgmAmt,TR(` for ${d.work_desc}${d.consumer?' on request of consumer '+d.consumer:''} is herewith submitted.`)],
-        {bf:80,af:80,al:AlignmentType.JUSTIFIED}),
-      P([TR('\t\tIt is requested to arrange to sanction the above estimate at the earliest please.')],{bf:60,af:140}),
-      P([TR('Encl: 1) '+(d.encl||'Estimate'))],{bf:60,af:200}),
-      P([TR('Yours Sincerely,',{b:true})],{al:AlignmentType.RIGHT,bf:60,af:60}),
-      BLK(),
-      P([TR('Superintending Engineer,',{b:true})],{af:20}),
-      P([TR('SCADA/Hyderabad.')],{af:80}),
-      P([TR('Copy to the '+deLines)],{bf:80}),
-    ]
-  }]});
-}
-
-// ── DOWNLOAD ──
-async function submitDoc(){
-  const d=collect(),e=valid(d);
-  if(e){toast(e,true);return;}
-  const r=getRecs();r.push(d);saveRecs(r);
-  await doDl(d);toast('✅ Saved & downloading!');
-}
-async function dlOnly(){
-  const d=collect(),e=valid(d);
-  if(e){toast(e,true);return;}
-  await doDl(d);toast('📄 Downloading...');
-}
 async function doDl(d){
   try{
-    const doc=await buildDocx(d);
+    const doc=await buildDoc(d);
     const blob=await window.docx.Packer.toBlob(doc);
     const mode=d.is_draft?'_DRAFT':'_FINAL';
-    const fname=`${d.doc_type==='PM'?'PM_Order':d.doc_type==='Z'?'Z_Estimate':'CGM_Letter'}${mode}_D${d.d_no}_${d.estimate_no}.docx`;
-    // Reliable download
+    const fn=(d.doc_type==='PM'?'PM_Order':d.doc_type==='Z'?'Z_Estimate':'CGM_Letter')+mode+'_D'+d.d_no+'_'+d.estimate_no+'.docx';
     const url=URL.createObjectURL(blob);
-    const a=document.createElement('a');
-    a.href=url;a.download=fname;
+    const a=document.createElement('a');a.href=url;a.download=fn;
     document.body.appendChild(a);a.click();
-    setTimeout(()=>{URL.revokeObjectURL(url);document.body.removeChild(a);},2000);
-  }catch(err){
-    toast('Download error: '+err.message,true);
-    console.error(err);
-  }
+    setTimeout(()=>{URL.revokeObjectURL(url);a.remove();},2000);
+  }catch(e){toast('Error: '+e.message,'err');console.error(e);}
+}
+async function subDoc(){
+  const d=col(),e=vld(d);if(e){toast(e,'err');return;}
+  const r=getRec();r.push(d);saveRec(r);
+  await doDl(d);toast('Saved & downloading!','ok');rdash();
+  document.getElementById('rnb').textContent=r.length;
+}
+async function dlOnly(){const d=col(),e=vld(d);if(e){toast(e,'err');return;}await doDl(d);toast('Downloading...','info');}
+function clrForm(){
+  document.querySelectorAll('#page-newdoc input:not([readonly]):not([type=hidden]),#page-newdoc select,#page-newdoc textarea').forEach(el=>{
+    if(el.id==='fy_s')el.value='26-27';else if(el.id==='fy_f')el.value='2026-2027';
+    else if(el.id==='acct_no')el.value='74.1';else if(el.id==='encl')el.value='Estimate';
+    else el.value='';
+  });
+  isDraft=false;document.getElementById('drt').classList.remove('on');
+  document.getElementById('dtck').style.color='transparent';
+  clrOff();gs2(1);setDT('PM');toast('Form cleared','info');
 }
 
-// ── MASTER DATA RENDERS ──
-function renderAll(){renderSecs();renderPMs();renderDivs();}
+const getRec=()=>{try{return JSON.parse(localStorage.getItem(ST))||[]}catch{return[]}};
+const saveRec=a=>localStorage.setItem(ST,JSON.stringify(a));
 
-function renderSecs(){
+function rrec(){
+  const recs=getRec(),q=(v('rec-q')||'').toLowerCase(),
+        tf=document.getElementById('rtf')?.value||'',
+        mf=document.getElementById('rmf')?.value||'';
+  const f=recs.filter(r=>{
+    if(q&&![r.estimate_no,r.division,r.d_no,r.work_desc,r.section].join(' ').toLowerCase().includes(q))return false;
+    if(tf&&r.doc_type!==tf)return false;
+    if(mf==='draft'&&!r.is_draft)return false;
+    if(mf==='final'&&r.is_draft)return false;
+    return true;
+  });
+  document.getElementById('rcc').textContent=recs.length;
+  document.getElementById('rnb').textContent=recs.length;
+  const tl={PM:'PM Order',Z:'Z-Est.',CGM:'CGM Lr.'};
+  document.getElementById('rec-tbody').innerHTML=f.length?f.map(r=>{
+    const amt=r.doc_type==='Z'?'₹'+parseInt(r.amt_g||0).toLocaleString('en-IN'):r.amount?'₹'+parseInt(r.amount).toLocaleString('en-IN'):'—';
+    const idx=recs.findIndex(x=>x.id===r.id);
+    const tc={PM:'pm',Z:'z',CGM:'cgm'}[r.doc_type]||'';
+    return '<tr><td style="color:var(--t3);font-size:12px">'+(idx+1)+'</td><td><div class="dcc"><div class="ta '+tc+'">'+r.doc_type+'</div><div><div class="ct">'+tl[r.doc_type]+'</div><div class="cs">'+(r.subdivision||'')+'</div></div></div></td>'
+      +'<td><span class="cm">'+(r.d_no||'—')+'</span></td><td>'+(r.division||'—')+'</td><td>'+(r.section||'—')+'</td>'
+      +'<td><span class="cm" style="font-size:11.5px">'+(r.estimate_no||'—')+'</span></td>'
+      +'<td style="font-weight:700">'+amt+'</td>'
+      +'<td><span class="badge '+(r.is_draft?'b-dr':'b-gr')+'">'+(r.is_draft?'DRAFT':'FINAL')+'</span></td>'
+      +'<td style="font-size:11px;color:var(--t3)">'+fd(r.memo_date)+'</td>'
+      +'<td><div style="display:flex;gap:5px"><button class="ab" onclick="reDl('+idx+')">⬇ docx</button><button class="ab d" onclick="delR('+idx+')">✕</button></div></td></tr>';
+  }).join(''):'<tr><td colspan="10" style="text-align:center;padding:36px;color:var(--t3)">No records found</td></tr>';
+}
+async function reDl(i){const r=getRec()[i];if(!r)return;await doDl(r);toast('Re-downloaded!','ok');}
+function delR(i){if(!confirm('Delete?'))return;const r=getRec();r.splice(i,1);saveRec(r);rrec();rdash();toast('Deleted','info');}
+function clrAll(){if(!confirm('Delete ALL records?'))return;localStorage.removeItem(ST);rrec();rdash();toast('Cleared','info');}
+function expCSV(){
+  const r=getRec();if(!r.length){toast('No records','err');return;}
+  const cols=['doc_type','is_draft','memo_date','d_no','fy_s','estimate_no','division','subdivision','section','pm_type','works_type','amount','in_words','sanc_no','saved_on'];
+  const csv=[cols.join(','),...r.map(x=>cols.map(c=>'"'+(x[c]||'').toString().replace(/"/g,'""')+'"').join(','))].join('\n');
+  const a=document.createElement('a');a.href='data:text/csv,'+encodeURIComponent(csv);
+  a.download='TGSPDCL_'+new Date().toISOString().slice(0,10)+'.csv';a.click();toast('CSV exported','ok');
+}
+
+let chartI=null;
+function rdash(){
+  const recs=getRec();
+  const tot=recs.length,fin=recs.filter(r=>!r.is_draft).length,dr=recs.filter(r=>r.is_draft).length;
+  const now=new Date(),mon=recs.filter(r=>{const d=new Date(r.id);return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear();}).length;
+  document.getElementById('sn1').textContent=tot;
+  document.getElementById('sn2').textContent=fin;
+  document.getElementById('sn3').textContent=dr;
+  document.getElementById('sn4').textContent=mon;
+  document.getElementById('rnb').textContent=tot;
+  if(recs.length){
+    const last=recs[recs.length-1];
+    document.getElementById('la').textContent=(last.doc_type==='PM'?'PM Order':last.doc_type==='Z'?'Z-Est':'CGM')+' · D.No.'+(last.d_no||'—')+' · '+fd(last.memo_date);
+  }
+  const recent=recs.slice(-5).reverse();
+  const tl={PM:'PM Order',Z:'Z-Est.',CGM:'CGM Lr.'};
+  document.getElementById('dtb').innerHTML=recent.length?recent.map(r=>{
+    const amt=r.doc_type==='Z'?'₹'+parseInt(r.amt_g||0).toLocaleString('en-IN'):r.amount?'₹'+parseInt(r.amount).toLocaleString('en-IN'):'—';
+    const idx=getRec().findIndex(x=>x.id===r.id);
+    const tc={PM:'pm',Z:'z',CGM:'cgm'}[r.doc_type]||'';
+    return '<tr><td><div class="dcc"><div class="ta '+tc+'">'+r.doc_type+'</div><div><div class="ct">'+tl[r.doc_type]+'</div><div class="cs">'+(r.division||'')+'</div></div></div></td>'
+      +'<td><span class="cm">'+(r.d_no||'—')+'</span></td><td>'+(r.division||'—')+'</td>'
+      +'<td><span class="cm" style="font-size:11px">'+(r.estimate_no||'—')+'</span></td>'
+      +'<td style="font-weight:700">'+amt+'</td>'
+      +'<td><span class="badge '+(r.is_draft?'b-dr':'b-gr')+'">'+(r.is_draft?'DRAFT':'FINAL')+'</span></td>'
+      +'<td style="font-size:11px;color:var(--t3)">'+fd(r.memo_date)+'</td>'
+      +'<td><button class="ab" onclick="reDl('+idx+')">⬇</button></td></tr>';
+  }).join(''):'<tr><td colspan="8" style="text-align:center;padding:36px;color:var(--t3);font-size:13px">No estimates yet. <span style="color:var(--blue);cursor:pointer;font-weight:700" onclick="sw('newdoc')">Create your first →</span></td></tr>';
+  buildChart(recs);
+}
+function buildChart(recs){
+  const ctx=document.getElementById('ac');if(!ctx)return;
+  const months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const now=new Date(),labels=[],pm=[],fin=[],dr=[];
+  for(let i=5;i>=0;i--){
+    const d=new Date(now.getFullYear(),now.getMonth()-i,1);
+    labels.push(months[d.getMonth()]);
+    const mo=recs.filter(r=>{const rd=new Date(r.id);return rd.getMonth()===d.getMonth()&&rd.getFullYear()===d.getFullYear();});
+    pm.push(mo.filter(r=>r.doc_type==='PM').length);
+    fin.push(mo.filter(r=>!r.is_draft).length);
+    dr.push(mo.filter(r=>r.is_draft).length);
+  }
+  if(chartI)chartI.destroy();
+  chartI=new Chart(ctx,{type:'line',data:{labels,datasets:[
+    {label:'PM Order',data:pm,borderColor:'#2563eb',backgroundColor:'rgba(37,99,235,.08)',tension:.4,fill:true,pointBackgroundColor:'#2563eb',pointRadius:4},
+    {label:'Final',data:fin,borderColor:'#10b981',tension:.4,fill:false,pointBackgroundColor:'#10b981',pointRadius:4},
+    {label:'Draft',data:dr,borderColor:'#f59e0b',tension:.4,fill:false,pointBackgroundColor:'#f59e0b',pointRadius:4},
+  ]},options:{responsive:true,plugins:{legend:{position:'top',labels:{font:{size:11},boxWidth:10}}},
+    scales:{y:{beginAtZero:true,grid:{color:'#f1f5f9'},ticks:{stepSize:1,font:{size:11}}},
+            x:{grid:{display:false},ticks:{font:{size:11}}}}}});
+}
+
+function rall(){rsec();rpm();rdivs();}
+function rsec(){
   const q=(document.getElementById('sec-q')?.value||'').toLowerCase();
   const rows=q?allSecs.filter(s=>[s.division,s.subdivision,s.section].join(' ').toLowerCase().includes(q)):allSecs;
-  document.getElementById('sec-cnt').textContent=`${allSecs.length} sections`;
-  document.getElementById('sec-tbody').innerHTML=rows.map(s=>`
-    <tr><td>${s.division}</td><td>${s.subdivision}</td><td><b>${s.section}</b></td>
-    <td>${s.ae||'<span style="color:#ccc">—</span>'}</td>
-    <td>${s.ade||'<span style="color:#ccc">—</span>'}</td>
-    <td>${s.de||'<span style="color:#ccc">—</span>'}</td>
-    <td><button class="btn b-blue" style="font-size:10.5px;padding:4px 9px"
-      onclick="editSec('${s.division}','${s.subdivision}','${s.section}')">✏ Edit</button></td></tr>`
-  ).join('')||'<tr><td colspan="7" class="no-data">No sections</td></tr>';
+  if(document.getElementById('scc'))document.getElementById('scc').textContent=allSecs.length+' sections';
+  if(document.getElementById('sec-tbody'))document.getElementById('sec-tbody').innerHTML=rows.map(s=>
+    '<tr><td>'+s.division+'</td><td>'+s.subdivision+'</td><td><strong>'+s.section+'</strong></td>'
+    +'<td>'+(s.ae||'<span style="color:var(--t3)">—</span>')+'</td>'
+    +'<td>'+(s.ade||'<span style="color:var(--t3)">—</span>')+'</td>'
+    +'<td>'+(s.de||'<span style="color:var(--t3)">—</span>')+'</td>'
+    +'<td><button class="ab" onclick="editSec(\''+s.division+'\',\''+s.subdivision+'\',\''+s.section+'\')">✏ Edit</button></td></tr>'
+  ).join('')||'<tr><td colspan="7" style="text-align:center;padding:28px;color:var(--t3)">No data. Click Seed All first.</td></tr>';
 }
-function renderPMs(){
+function rpm(){
   const q=(document.getElementById('pm-q')?.value||'').toLowerCase();
   const rows=q?allPM.filter(p=>(p.c+p.n+p.t).toLowerCase().includes(q)):allPM;
-  document.getElementById('pm-tbody').innerHTML=rows.map(p=>
-    `<tr><td><span class="badge-${p.t==='T&D'?'td':'rm'}">${p.t}</span></td>
-     <td><b>${p.c}</b></td><td>${p.n}</td></tr>`).join('')||
-    '<tr><td colspan="3" class="no-data">No data</td></tr>';
+  if(document.getElementById('pm-tbody'))document.getElementById('pm-tbody').innerHTML=rows.map(p=>
+    '<tr><td><span class="badge '+(p.t==='T&D'?'b-gr':'b-bl')+'">'+p.t+'</span></td><td><strong>'+p.c+'</strong></td><td>'+p.n+'</td></tr>').join('');
 }
-function renderDivs(){
-  document.getElementById('div-tbody').innerHTML=UNIQ_DIVS.map(d=>
-    `<tr><td><b>${d}</b></td><td>${DIV_LR[d]||'—'}</td>
-     <td>${(UNIQ_SUBS[d]||[]).join(' · ')}</td></tr>`).join('');
+function rdivs(){
+  if(document.getElementById('div-tbody'))document.getElementById('div-tbody').innerHTML=UDIVS.map(d=>
+    '<tr><td><strong>'+d+'</strong></td><td style="font-family:DM Mono,monospace;font-size:11.5px">'+(DIV_LR[d]||'—')+'</td>'
+    +'<td style="font-size:12px;color:var(--t3)">'+(USUBS[d]||[]).join(' · ')+'</td></tr>').join('');
 }
-
-function mTab(t){
-  ['sections','pm','divs'].forEach(x=>{
-    document.getElementById('mtab-'+x).style.display=x===t?'':'none';
-  });
-  document.querySelectorAll('.stab').forEach((el,i)=>
-    el.classList.toggle('active',['sections','pm','divs'][i]===t));
+function mtab(t){
+  ['sec','pm','div'].forEach(x=>{if(document.getElementById('mt-'+x))document.getElementById('mt-'+x).style.display=x===t?'':'none';});
+  document.querySelectorAll('.mt2').forEach((el,i)=>el.classList.toggle('on',['sec','pm','div'][i]===t));
 }
-
 function editSec(d,s,sec){
-  document.getElementById('add_div').value=d;addLoadSubs();
+  mtab('sec');sw('master');
+  document.getElementById('add_div').value=d;als();
   setTimeout(()=>{
     document.getElementById('add_sub').value=s;
     document.getElementById('add_sec').value=sec;
-    const found=allSecs.find(x=>x.division===d&&x.subdivision===s&&x.section===sec);
-    if(found){
-      document.getElementById('add_ae').value=found.ae||'';
-      document.getElementById('add_ade').value=found.ade||'';
-      document.getElementById('add_de').value=found.de||'';
-    }
+    const f=allSecs.find(x=>x.division===d&&x.subdivision===s&&x.section===sec);
+    if(f){document.getElementById('add_ae').value=f.ae||'';document.getElementById('add_ade').value=f.ade||'';document.getElementById('add_de').value=f.de||'';}
     document.getElementById('add_ae').scrollIntoView({behavior:'smooth'});
   },60);
 }
-
-function addLoadSubs(){
-  const d=document.getElementById('add_div').value;
-  const s=document.getElementById('add_sub');
-  s.innerHTML='<option value="">-- Select --</option>';
-  (UNIQ_SUBS[d]||[]).forEach(x=>s.add(new Option(x,x)));
-}
-
-async function saveSection(){
-  const d=document.getElementById('add_div').value;
-  const s=document.getElementById('add_sub').value;
-  const sec=document.getElementById('add_sec').value.trim();
-  if(!d||!s||!sec){toast('Division, Sub-Div & Section required',true);return;}
+async function saveSec(){
+  const d=document.getElementById('add_div').value,s=document.getElementById('add_sub').value,
+        sec=document.getElementById('add_sec').value.trim();
+  if(!d||!s||!sec){toast('Division, Sub-Div & Section required','err');return;}
   const obj={division:d,subdivision:s,section:sec,
     ae:document.getElementById('add_ae').value.trim(),
     ade:document.getElementById('add_ade').value.trim(),
     de:document.getElementById('add_de').value.trim()};
   const idx=allSecs.findIndex(x=>x.division===d&&x.subdivision===s&&x.section===sec);
   if(idx>=0)allSecs[idx]={...allSecs[idx],...obj};else allSecs.push(obj);
-  if(db){
-    const id=(d+'-'+s+'-'+sec).replace(/[^a-zA-Z0-9-]/g,'_');
-    await db.collection('sections').doc(id).set(obj,{merge:true});
-  }
-  renderSecs();toast('Section saved!');
+  if(db){const id=(d+'-'+s+'-'+sec).replace(/[^a-zA-Z0-9-]/g,'_');
+    await db.collection('sections').doc(id).set(obj,{merge:true});}
+  rsec();toast('Section saved!','ok');
 }
 
-// ── RECORDS ──
-const getRecs=()=>{try{return JSON.parse(localStorage.getItem(STORE))||[]}catch{return[]}};
-const saveRecs=a=>localStorage.setItem(STORE,JSON.stringify(a));
-function renderRec(){
-  const recs=getRecs();
-  const q=(document.getElementById('rec-q')?.value||'').toLowerCase();
-  const f=q?recs.filter(r=>[r.estimate_no,r.division,r.d_no,r.work_desc,r.section].join(' ').toLowerCase().includes(q)):recs;
-  document.getElementById('cnt').textContent=recs.length;
-  const tl={PM:'PM Order',Z:'Z-Est.',CGM:'CGM Lr.'};
-  document.getElementById('rec-tbody').innerHTML=f.length?f.map((r,i)=>{
-    const amt=r.doc_type==='Z'?'₹'+parseInt(r.amt_g||0).toLocaleString('en-IN'):r.amount?'₹'+parseInt(r.amount).toLocaleString('en-IN'):'—';
-    const idx=recs.findIndex(x=>x.id===r.id);
-    return `<tr>
-      <td>${idx+1}</td>
-      <td><span class="tbadge ${r.doc_type.toLowerCase()}">${tl[r.doc_type]||r.doc_type}</span></td>
-      <td>${fmtD(r.memo_date)}</td><td><b>${r.d_no||'—'}</b></td>
-      <td><b>${r.estimate_no||'—'}</b></td><td>${r.division||'—'}</td>
-      <td>${r.subdivision||'—'}</td><td>${r.section||'—'}</td>
-      <td>${amt}</td>
-      <td><span class="tbadge ${r.is_draft?'draft':''}" style="${r.is_draft?'':'background:#f0fdf4;color:#166534'}">${r.is_draft?'DRAFT':'FINAL'}</span></td>
-      <td style="font-size:10.5px;color:#888">${r.saved_on||'—'}</td>
-      <td style="display:flex;gap:5px">
-        <button class="btn b-blue" style="font-size:10.5px;padding:4px 9px" onclick="reDl(${idx})">⬇ docx</button>
-        <button class="btn b-red" onclick="delR(${idx})">✕</button>
-      </td></tr>`;
-  }).join(''):'<tr><td colspan="12" class="no-data">No records yet</td></tr>';
+function saveFB(){
+  const cfg={apiKey:v('cfg_key'),authDomain:v('cfg_auth'),projectId:v('cfg_proj'),
+    storageBucket:v('cfg_bucket'),messagingSenderId:v('cfg_msid'),appId:v('cfg_appid')};
+  if(!cfg.apiKey||!cfg.appId){toast('API Key & App ID required','err');return;}
+  localStorage.setItem('fb_cfg',JSON.stringify(cfg));conFB(cfg);
 }
-async function reDl(i){const r=getRecs()[i];if(!r)return;await doDl(r);toast('Re-downloaded!');}
-function delR(i){if(!confirm('Delete?'))return;const r=getRecs();r.splice(i,1);saveRecs(r);renderRec();toast('Deleted');}
-function clrAll(){if(!confirm('Delete ALL records?'))return;localStorage.removeItem(STORE);renderRec();toast('Cleared');}
-function expCSV(){
-  const r=getRecs();if(!r.length){toast('No records',true);return;}
-  const cols=['doc_type','is_draft','memo_date','d_no','fy_s','estimate_no','division','subdivision','section','pm_type','works_type','amount','in_words','sanc_no','saved_on'];
-  const csv=[cols.join(','),...r.map(x=>cols.map(c=>'"'+(x[c]||'').toString().replace(/"/g,'""')+'"').join(','))].join('\n');
-  const a=document.createElement('a');
-  a.href='data:text/csv,'+encodeURIComponent(csv);
-  a.download='TGSPDCL_'+new Date().toISOString().slice(0,10)+'.csv';
-  a.click();
-  toast('CSV exported');
+function conFB(cfg){
+  try{try{firebase.app().delete();}catch(e){}
+    firebase.initializeApp(cfg);db=firebase.firestore();
+    db.collection('_t').limit(1).get()
+      .then(()=>{fbOK(true);loadFB();document.getElementById('fb-r').textContent='✅ Connected!';document.getElementById('fb-r').style.color='var(--green)';})
+      .catch(e=>{fbOK(false);document.getElementById('fb-r').textContent='❌ '+e.message;document.getElementById('fb-r').style.color='var(--red)';});
+  }catch(e){fbOK(false);}
+}
+function clearFB(){localStorage.removeItem('fb_cfg');db=null;fbOK(false);toast('Disconnected','info');}
+function fbOK(ok){
+  document.getElementById('fbd').className='fbi'+(ok?' ok':'');
+  document.getElementById('fbl').textContent=ok?'Firebase Connected':'Not Connected';
+}
+function loadFBSaved(){
+  const s=localStorage.getItem('fb_cfg');if(!s)return;
+  const c=JSON.parse(s);
+  const m={apiKey:'cfg_key',authDomain:'cfg_auth',projectId:'cfg_proj',storageBucket:'cfg_bucket',messagingSenderId:'cfg_msid',appId:'cfg_appid'};
+  Object.entries(m).forEach(([k,id])=>{const el=document.getElementById(id);if(el&&c[k])el.value=c[k];});
+  if(c.apiKey&&c.appId)conFB(c);
+}
+async function loadFB(){
+  if(!db)return loadLocally();
+  try{
+    const[s,p]=await Promise.all([db.collection('sections').get(),db.collection('pm_orders').get()]);
+    allSecs=s.docs.map(d=>({id:d.id,...d.data()}));
+    if(p.docs.length)allPM=p.docs.map(d=>({c:d.data().order_type,t:d.data().est_type,n:d.data().name}));
+    pdivs();fpm();rall();toast('Data loaded from Firebase','ok');
+  }catch(e){loadLocally();}
+}
+function loadLocally(){
+  allSecs=HIER.map(([d,s,sec])=>({division:d,subdivision:s,section:sec,ae:'',ade:'',de:''}));
+  allPM=PM_DATA.slice();pdivs();fpm();rall();
+}
+async function seedAll(){
+  if(!db){toast('Connect Firebase first','err');return;}
+  if(!confirm('Seed '+HIER.length+' sections + '+PM_DATA.length+' PM orders?'))return;
+  document.getElementById('pb').style.display='';
+  document.getElementById('plbl').style.display='';
+  let done=0,total=HIER.length+PM_DATA.length;
+  const upd=()=>{done++;document.getElementById('pbf').style.width=Math.round(done/total*100)+'%';
+    document.getElementById('plbl').textContent='Seeding '+done+'/'+total+'...';};
+  const b1=db.batch();
+  HIER.forEach(([d,s,sec])=>{b1.set(db.collection('sections').doc((d+'-'+s+'-'+sec).replace(/[^a-zA-Z0-9-]/g,'_')),
+    {division:d,subdivision:s,section:sec,ae:'',ade:'',de:''});upd();});
+  await b1.commit();
+  const b2=db.batch();
+  PM_DATA.forEach(p=>{b2.set(db.collection('pm_orders').doc(p.c.replace(/[^a-zA-Z0-9-]/g,'_')),
+    {est_type:p.t,order_type:p.c,name:p.n});upd();});
+  await b2.commit();
+  document.getElementById('pb').style.display='none';
+  toast('All data seeded!','ok');await loadFB();
 }
 
-// ── FORM CLEAR ──
-function clearForm(){
-  document.querySelectorAll('#page-doc input:not([readonly]):not([type=checkbox]):not([type=hidden]),#page-doc select,#page-doc textarea').forEach(el=>{
-    if(el.id==='fy_s')el.value='26-27';
-    else if(el.id==='fy_f')el.value='2026-2027';
-    else if(el.id==='acct_no')el.value='74.1';
-    else if(el.id==='encl')el.value='Estimate';
-    else el.value='';
-  });
-  document.getElementById('is_draft').checked=false;
-  document.getElementById('draft-wrap').classList.remove('is-draft');
-  document.getElementById('sig-preview').textContent='Signature: SE/SCADA only (Final version)';
-  document.getElementById('sig-preview').style.color='var(--mid)';
-  clearOff();
-  toast('Form cleared','info');
+function tick(){
+  const now=new Date(),h=now.getHours(),m=now.getMinutes().toString().padStart(2,'0');
+  const ap=h>=12?'PM':'AM',hr=(h%12)||12;
+  document.getElementById('ct').textContent=hr+':'+m+' '+ap;
+  const days=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const mons=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  document.getElementById('cd').textContent=days[now.getDay()]+', '+now.getDate()+' '+mons[now.getMonth()]+' '+now.getFullYear();
+  document.getElementById('gt').textContent=(h<12?'Good Morning':h<17?'Good Afternoon':'Good Evening')+', Naresh! '+(h<12?'☀️':h<17?'👋':'🌙');
 }
 
-// ── UTILS ──
 function v(id){return document.getElementById(id)?.value?.trim()||'';}
-function fmtD(s){if(!s)return '___';try{const[y,m,d]=s.split('-');return`${d}.${m}.${y}`;}catch{return s;}}
-function toast(msg,type){
-  const t=document.getElementById('toast');
-  t.textContent=msg;t.className=type===true?'err':type==='info'?'info':'ok';
-  t.style.display='block';setTimeout(()=>t.style.display='none',3200);
+function fd(s){if(!s)return'___';try{const[y,m,d]=s.split('-');return d+'.'+m+'.'+y;}catch{return s;}}
+
+let tT;
+function toast(msg,type='ok'){
+  const t=document.getElementById('toast');t.textContent=msg;t.className=type;
+  t.style.display='flex';clearTimeout(tT);tT=setTimeout(()=>t.style.display='none',3200);
 }
 
-// ── INIT ──
 window.onload=()=>{
-  document.getElementById('memo_date').value=new Date().toISOString().slice(0,10);
-  document.getElementById('lines_date').value=new Date().toISOString().slice(0,10);
-  document.getElementById('sanc_date').value=new Date().toISOString().slice(0,10);
-  setDT('PM');
-  loadLocally();
-  loadFBSaved();
-  populateDivs();filterPM();
+  const td=new Date().toISOString().slice(0,10);
+  ['memo_date','lines_date','sanc_date'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=td;});
+  tick();setInterval(tick,15000);
+  setDT('PM');loadLocally();loadFBSaved();rdash();
 };
-</script>
-</body>
-</html>
+</script></body></html>
