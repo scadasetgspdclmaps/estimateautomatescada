@@ -8,7 +8,8 @@
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.js"></script>
+<!-- docx generated inline via XML+ZIP, no external library needed -->
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
 :root{
@@ -821,161 +822,159 @@ function cz(){
   upv();
 }
 
-async function buildDoc(d){
-  const{Document,Paragraph,TextRun,AlignmentType,BorderStyle,Table,TableRow,TableCell,WidthType,UnderlineType}=window.docx;
-  const F='Times New Roman',N=24;
-  const NO={style:BorderStyle.NONE};const NB={top:NO,bottom:NO,left:NO,right:NO};
-  const TR=(tx,o={})=>new TextRun({text:tx,font:F,size:o.sz||N,bold:!!o.b,italics:!!o.i,
-    underline:o.u?{type:UnderlineType.SINGLE}:undefined});
-  const P=(ch,o={})=>new Paragraph({children:Array.isArray(ch)?ch:[ch],
-    alignment:o.al||AlignmentType.LEFT,spacing:{before:o.bf||0,after:o.af||60},
-    indent:o.in?{left:o.in}:undefined});
-  const BLK=()=>P([TR('')],{af:60});
+/* ── SELF-CONTAINED DOCX GENERATOR (XML + JSZip, no external docx lib) ── */
+function xe(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function rpr(b,u,i,sz,font){
+  font=font||'Times New Roman';sz=sz||24;
+  return '<w:rPr>'+(b?'<w:b/>':'')+(u?'<w:u w:val="single"/>':'')+(i?'<w:i/>':'')+
+    '<w:sz w:val="'+sz+'"/><w:szCs w:val="'+sz+'"/><w:rFonts w:ascii="'+font+'" w:hAnsi="'+font+'" w:cs="'+font+'"/></w:rPr>';
+}
+function run(txt,b,u,i,sz){return '<w:r>'+rpr(b,u,i,sz)+'<w:t xml:space="preserve">'+xe(txt)+'</w:t></w:r>';}
+function para(runs,align,bef,aft,indent){
+  align=align||'left';bef=bef||0;aft=(aft===undefined?60:aft);
+  return '<w:p><w:pPr><w:jc w:val="'+align+'"/><w:spacing w:before="'+bef+'" w:after="'+aft+'"/>'+(indent?'<w:ind w:left="'+indent+'"/>':'')+'</w:pPr>'+runs+'</w:p>';
+}
+function blk(){return para(run(''),undefined,0,60);}
+function rPara(n,tx,indent){return para(run(n+') '+tx),undefined,30,30,indent||1080);}
+function bItem(n,runsXml){return '<w:p><w:pPr><w:jc w:val="both"/><w:spacing w:before="80" w:after="80"/><w:ind w:left="360"/></w:pPr>'+run(n+')  ')+runsXml+'</w:p>';}
+function hdrTable(){
+  const nb='<w:top w:val="none" w:sz="0"/><w:left w:val="none" w:sz="0"/><w:bottom w:val="none" w:sz="0"/><w:right w:val="none" w:sz="0"/>';
+  const bdr='<w:top w:val="single" w:sz="6" w:color="003366"/><w:left w:val="single" w:sz="6" w:color="003366"/><w:bottom w:val="single" w:sz="6" w:color="003366"/><w:right w:val="single" w:sz="6" w:color="003366"/>';
+  return '<w:tbl><w:tblPr><w:tblW w:w="5000" w:type="pct"/><w:tblBorders>'+bdr+'<w:insideH w:val="none"/><w:insideV w:val="single" w:sz="6" w:color="003366"/></w:tblBorders></w:tblPr><w:tr>'+
+    '<w:tc><w:tcPr><w:tcW w:w="1440" w:type="dxa"/><w:tcBorders>'+nb+'<w:right w:val="single" w:sz="6" w:color="003366"/></w:tcBorders></w:tcPr>'+
+    para(run('TGSPDCL',true),'center',20,6)+para(run('Southern',false,false,false,13),'center',0,2)+para(run('Power Dist.',false,false,false,13),'center',0,2)+para(run('Co. of T.G.',false,false,false,13),'center',0,20)+
+    '</w:tc><w:tc><w:tcPr><w:tcBorders>'+nb+'</w:tcBorders></w:tcPr>'+
+    para(run('Southern Power Distribution Company of T.G. Ltd.',true,false,false,26),'center',60,16)+
+    para(run('"Electricity Saved is Electricity Produced"',false,false,true,20),'center',0,60)+
+    '</w:tc></w:tr></w:tbl>';
+}
+function sigTable(d){
+  const nb='<w:top w:val="none" w:sz="0"/><w:left w:val="none" w:sz="0"/><w:bottom w:val="none" w:sz="0"/><w:right w:val="none" w:sz="0"/>';
+  const seRuns=para(run('Superintending Engineer,',true),'right',300,20)+para(run('SCADA/Hyderabad.',true),'right',0,0);
+  if(d.is_draft){
+    const lt='AE(T)'+(d.ae?' ('+d.ae+')':'')+' ADE(T&M)'+(d.ade?' ('+d.ade+')':'')+' DE(T)'+(d.de?' ('+d.de+')':'');
+    return '<w:tbl><w:tblPr><w:tblW w:w="5000" w:type="pct"/><w:tblBorders><w:insideH w:val="none"/><w:insideV w:val="none"/></w:tblBorders></w:tblPr><w:tr>'+
+      '<w:tc><w:tcPr><w:tcW w:w="3000" w:type="pct"/><w:tcBorders>'+nb+'</w:tcBorders></w:tcPr>'+para(run(lt),undefined,300,0)+'</w:tc>'+
+      '<w:tc><w:tcPr><w:tcBorders>'+nb+'</w:tcBorders></w:tcPr>'+seRuns+'</w:tc></w:tr></w:tbl>';
+  }
+  return '<w:tbl><w:tblPr><w:tblW w:w="5000" w:type="pct"/><w:tblBorders><w:insideH w:val="none"/><w:insideV w:val="none"/></w:tblBorders></w:tblPr><w:tr>'+
+    '<w:tc><w:tcPr><w:tcW w:w="2500" w:type="pct"/><w:tcBorders>'+nb+'</w:tcBorders></w:tcPr>'+para(run(''))+'</w:tc>'+
+    '<w:tc><w:tcPr><w:tcBorders>'+nb+'</w:tcBorders></w:tcPr>'+seRuns+'</w:tc></w:tr></w:tbl>';
+}
+function buildDocXml(d){
   const mLn=d.doc_type==='CGM'
     ?'Lr.No. SE/SCADA/DE(T)/ADE(T&M)/AE(T)/F.No./D.No.'+d.d_no+'/'+d.fy_s+', Dt.'+fd(d.memo_date)+'.'
     :'Memo.No.SE/SCADA/DE(T)/ADE(T&M)/AE(T)/F.No./D.No.'+d.d_no+'/'+d.fy_s+',Dt.'+fd(d.memo_date)+'.';
   const deLn='Divisional Engineer/Lines/'+d.division;
   const wt=d.works_type||'O&M';
-  let aR;
+  let amtRuns='';
   if(d.doc_type==='Z'){
-    aR=[TR('Rs.'+parseInt(d.amt_g).toLocaleString('en-IN')+'/-',{b:true}),
-      TR('('+d.words_g+') & '),TR('Rs.'+parseInt(d.amt_n).toLocaleString('en-IN')+'/-',{b:true}),
-      TR('('+d.words_n+')',{b:true})];
+    amtRuns=run('Rs.'+parseInt(d.amt_g).toLocaleString('en-IN')+'/-',true)+run('('+d.words_g+') & ')+run('Rs.'+parseInt(d.amt_n).toLocaleString('en-IN')+'/-',true)+run('('+d.words_n+')',true);
   }else{
-    aR=[TR('Rs.'+parseInt(d.amount).toLocaleString('en-IN')+'/-(',{b:true}),
-      TR(d.in_words,{b:true}),TR(')',{b:true})];
+    amtRuns=run('Rs.'+parseInt(d.amount||0).toLocaleString('en-IN')+'/-(',true)+run(d.in_words||'',true)+run(')',true);
   }
-  const hdr=new Table({width:{size:100,type:WidthType.PERCENTAGE},
-    borders:{top:{style:BorderStyle.SINGLE,size:6,color:'003366'},bottom:{style:BorderStyle.SINGLE,size:6,color:'003366'},left:{style:BorderStyle.SINGLE,size:6,color:'003366'},right:{style:BorderStyle.SINGLE,size:6,color:'003366'},insideH:NO,insideV:{style:BorderStyle.SINGLE,size:6,color:'003366'}},
-    rows:[new TableRow({children:[
-      new TableCell({width:{size:1440,type:WidthType.DXA},
-        children:[P([TR('TGSPDCL',{b:true,sz:18})],{al:AlignmentType.CENTER,bf:20,af:6}),
-          P([TR('Southern',{sz:13})],{al:AlignmentType.CENTER,af:2}),
-          P([TR('Power Dist.',{sz:13})],{al:AlignmentType.CENTER,af:2}),
-          P([TR('Co. of T.G.',{sz:13})],{al:AlignmentType.CENTER,af:20})],
-        borders:{top:NO,bottom:NO,left:NO,right:{style:BorderStyle.SINGLE,size:6,color:'003366'}}}),
-      new TableCell({children:[
-        P([TR('Southern Power Distribution Company of T.G. Ltd.',{b:true,sz:26})],{al:AlignmentType.CENTER,bf:60,af:16}),
-        P([TR('"Electricity Saved is Electricity Produced"',{i:true,sz:20})],{al:AlignmentType.CENTER,af:60})],
-        borders:NB}),
-    ]})]});
-  let sigT;
-  if(d.is_draft){
-    const lt='AE(T)'+(d.ae?' ('+d.ae+')':'')+' ADE(T&M)'+(d.ade?' ('+d.ade+')':'')+' DE(T)'+(d.de?' ('+d.de+')':'');
-    sigT=new Table({width:{size:100,type:WidthType.PERCENTAGE},borders:{top:NO,bottom:NO,left:NO,right:NO,insideH:NO,insideV:NO},
-      rows:[new TableRow({children:[
-        new TableCell({width:{size:60,type:WidthType.PERCENTAGE},children:[P([TR(lt)],{bf:300})],borders:NB}),
-        new TableCell({children:[
-          P([TR('Superintending Engineer,',{b:true})],{al:AlignmentType.RIGHT,bf:300,af:20}),
-          P([TR('SCADA/Hyderabad.',{b:true})],{al:AlignmentType.RIGHT})],borders:NB}),
-      ]})]});
-  }else{
-    sigT=new Table({width:{size:100,type:WidthType.PERCENTAGE},borders:{top:NO,bottom:NO,left:NO,right:NO,insideH:NO,insideV:NO},
-      rows:[new TableRow({children:[
-        new TableCell({width:{size:50,type:WidthType.PERCENTAGE},children:[P([TR('')])],borders:NB}),
-        new TableCell({children:[
-          P([TR('Superintending Engineer,',{b:true})],{al:AlignmentType.RIGHT,bf:300,af:20}),
-          P([TR('SCADA/Hyderabad.',{b:true})],{al:AlignmentType.RIGHT})],borders:NB}),
-      ]})]});
-  }
-  const pg={properties:{page:{size:{width:11906,height:16838},margin:{top:1080,bottom:1080,left:1260,right:1080}}}};
+  const pgSz='<w:pgSz w:w="11906" w:h="16838"/>';
+  const pgMar='<w:pgMar w:top="1080" w:right="1080" w:bottom="1080" w:left="1260" w:header="708" w:footer="708" w:gutter="0"/>';
+  const sectPr='<w:sectPr>'+pgSz+pgMar+'</w:sectPr>';
   if(d.doc_type==='PM'||d.doc_type==='Z'){
-    const rP=(n,tx)=>P([TR(n+') '+tx)],{bf:30,af:30,in:1080});
-    const bI=(n,runs)=>new Paragraph({children:[TR(n+')  '),...(Array.isArray(runs)?runs:[TR(runs)])],
-      alignment:AlignmentType.JUSTIFIED,spacing:{before:80,after:80},indent:{left:360}});
     const sL=d.sanc_no
       ?'The estimate is technically sanctioned and registered as sanction No.'+d.sanc_no+'/'+d.fy_s+' Dt.'+fd(d.sanc_date)+' for the financial year '+d.fy_f+'.'
       :'The estimate is technically sanctioned and registered as sanction No.____________/'+d.fy_s+' Dt.____________ for the financial year '+d.fy_f+'.';
-    return new Document({sections:[{...pg,children:[
-      hdr,BLK(),
-      P([TR('Office of the')],{al:AlignmentType.RIGHT,af:20}),
-      P([TR('Superintending Engineer,',{b:true})],{al:AlignmentType.RIGHT,af:20}),
-      P([TR('SCADA Circle, TGSPDCL,')],{al:AlignmentType.RIGHT,af:20}),
-      P([TR('GTS Colony,')],{al:AlignmentType.RIGHT,af:20}),
-      P([TR('Hyderabad - 500 045.')],{al:AlignmentType.RIGHT,af:100}),
-      P([TR(mLn,{b:true,u:true})],{bf:60,af:100}),
-      P([TR('Sub:	',{b:true}),TR('Elecy - SCADA- Hyd - '+d.work_desc+' - Sanction - Accorded - Reg.')],{bf:60,af:80,al:AlignmentType.JUSTIFIED}),
-      P([TR('Ref: 1) B.P.Ms.No. 58 Dt.03.02.64.')],{bf:60,af:30,in:720}),
-      rP(2,'B.P.Ms.No.874 Dt.15.09.84'),
-      rP(3,'S.P.O.O(CGM-(O&M))Ms.No.844, Dt.22.12.2017.'),
-      rP(4,'Mem.No.CGM(O&M)/SE(O&M)/DE(O&M)-I/F.No.D.O.P/D.No.230/20, Dt. 21.05.20'),
-      rP(5,d.lines_lr||'___'),
-      rP(6,(d.doc_type==='Z'?'Z-Estimate No.':'Estimate No.')+' '+d.estimate_no),
-      P([TR('* * *')],{al:AlignmentType.CENTER,bf:100,af:100}),
-      bI(1,[TR('In exercise of powers delegated vide reference 1'),TR('st',{sz:18}),TR(' cited above, the Superintending Engineer/SCADA hereby accords approval for the proposal submitted by the '+deLn+' for '+d.work_desc+' for an amount of '),...aR,TR(' under '),TR(wt,{b:true}),TR(' works.')]),
-      bI(2,[TR('The expenditure is chargeable to '),TR(wt,{b:true}),TR(' (A/c. No.'+(d.acct_no||'74.1')+') for the year '+d.fy_f+'.')]),
-      bI(3,[TR(sL)]),
-      bI(4,[TR('The expenditure should be met from the provision available for '),TR(wt,{b:true}),TR(' works in the budget estimate and cash grants.')]),
-      bI(5,[TR('The work shall be taken up subject to the availability of budget provision for the financial year '),TR(d.fy_f,{b:true}),TR(' and cash grants.')]),
-      bI(6,[TR('The concerned officers will be held responsible for any wrong or excessive estimation.')]),
-      BLK(),sigT,BLK(),
-      P([TR('To',{b:true})],{bf:120,af:20}),
-      P([TR('	The '+deLn)],{af:20}),
-      P([TR('	Copy to the Senior Accounts Officer/SCADA/Hyd')],{af:20}),
-      P([TR('	Copy Submitted to the Chief Engineer/Operation/Metro Zone/Mint Compound, Hyderabad.')]),
-    ]}]});
+    return hdrTable()+blk()+
+      para(run('Office of the'),'right',0,20)+
+      para(run('Superintending Engineer,',true),'right',0,20)+
+      para(run('SCADA Circle, TGSPDCL,'),'right',0,20)+
+      para(run('GTS Colony,'),'right',0,20)+
+      para(run('Hyderabad - 500 045.'),'right',0,100)+
+      para(run(mLn,true,true),'left',60,100)+
+      '<w:p><w:pPr><w:jc w:val="both"/><w:spacing w:before="60" w:after="80"/></w:pPr>'+run('Sub:\t',true)+run('Elecy - SCADA- Hyd - '+d.work_desc+' - Sanction - Accorded - Reg.')+'</w:p>'+
+      para(run('Ref: 1) B.P.Ms.No. 58 Dt.03.02.64.'),undefined,60,30,720)+
+      rPara(2,'B.P.Ms.No.874 Dt.15.09.84')+
+      rPara(3,'S.P.O.O(CGM-(O&M))Ms.No.844, Dt.22.12.2017.')+
+      rPara(4,'Mem.No.CGM(O&M)/SE(O&M)/DE(O&M)-I/F.No.D.O.P/D.No.230/20, Dt. 21.05.20')+
+      rPara(5,d.lines_lr||'___')+
+      rPara(6,(d.doc_type==='Z'?'Z-Estimate No.':'Estimate No.')+' '+d.estimate_no)+
+      para(run('* * *'),'center',100,100)+
+      bItem(1,run('In exercise of powers delegated vide reference 1st cited above, the Superintending Engineer/SCADA hereby accords approval for the proposal submitted by the '+deLn+' for '+d.work_desc+' for an amount of ')+amtRuns+run(' under ')+run(wt,true)+run(' works.'))+
+      bItem(2,run('The expenditure is chargeable to ')+run(wt,true)+run(' (A/c. No.'+(d.acct_no||'74.1')+') for the year '+d.fy_f+'.'))+
+      bItem(3,run(sL))+
+      bItem(4,run('The expenditure should be met from the provision available for ')+run(wt,true)+run(' works in the budget estimate and cash grants.'))+
+      bItem(5,run('The work shall be taken up subject to the availability of budget provision for the financial year ')+run(d.fy_f,true)+run(' and cash grants.'))+
+      bItem(6,run('The concerned officers will be held responsible for any wrong or excessive estimation.'))+
+      blk()+sigTable(d)+blk()+
+      para(run('To',true),undefined,120,20)+
+      para(run('\tThe '+deLn),undefined,0,20)+
+      para(run('\tCopy to the Senior Accounts Officer/SCADA/Hyd'),undefined,0,20)+
+      para(run('\tCopy Submitted to the Chief Engineer/Operation/Metro Zone/Mint Compound, Hyderabad.'))+
+      sectPr;
   }
-  const ftT=new Table({width:{size:100,type:WidthType.PERCENTAGE},borders:{top:NO,bottom:NO,left:NO,right:NO,insideH:NO,insideV:NO},
-    rows:[new TableRow({children:[
-      new TableCell({children:[P([TR('From',{b:true})],{af:30}),P([TR('The Superintending Engineer,',{b:true})],{af:20}),P([TR('SCADA/TGSPDCL,')],{af:20}),P([TR('GTS Colony, Erragadda,')],{af:20}),P([TR('Hyderabad.')])],borders:NB}),
-      new TableCell({children:[P([TR('To',{b:true})],{af:30}),P([TR('The Chief Engineer/Operation,',{b:true})],{af:20}),P([TR('Metro Zone, TGSPDCL,')],{af:20}),P([TR('Mint Compound,')],{af:20}),P([TR('Hyderabad.')])],borders:NB}),
-    ]})]});
-  const cA=d.amount?[TR('Rs.'+parseInt(d.amount).toLocaleString('en-IN')+'/-(',{b:true}),TR(d.in_words,{b:true}),TR(')',{b:true})]:[TR('Rs.___/-')];
-  return new Document({sections:[{...pg,children:[
-    hdr,BLK(),ftT,BLK(),
-    P([TR(mLn,{b:true})],{bf:60,af:80}),P([TR('Sir,')],{bf:60,af:80}),
-    P([TR('Sub:-	',{b:true}),TR('TGSPDCL - SCADA Circle - Hyd - Estimate for '+d.work_desc+(d.consumer?' on request of consumer '+d.consumer:'')+' - Submitted for Necessary Sanction - Reg.')],{bf:60,af:80,al:AlignmentType.JUSTIFIED}),
-    P([TR('Ref:-1) S.P.O.O.(CGM-(O&M))Ms. No.844, Dt.22.12.2017')],{bf:60,af:30,in:720}),
-    P([TR('2) Memo.No.CGM(O&M)/SE(O&M)/DE(O&M)-I/F.No.D.O.P/D.No.230/20, Dt.21.05.20')],{af:30,in:1080}),
-    P([TR('3) '+d.lines_lr)],{af:30,in:1080}),
-    P([TR('4) SAP Estimate No.'+d.estimate_no)],{af:30,in:1080}),
-    P([TR('* * *')],{al:AlignmentType.CENTER,bf:100,af:100}),
-    P([TR('	The estimate for '),...cA,TR(' for '+d.work_desc+(d.consumer?' on request of consumer '+d.consumer:'')+' is herewith submitted.')],{bf:80,af:80,al:AlignmentType.JUSTIFIED}),
-    P([TR('		It is requested to arrange to sanction the above estimate at the earliest please.')],{bf:60,af:140}),
-    P([TR('Encl: 1) '+(d.encl||'Estimate'))],{bf:60,af:200}),
-    P([TR('Yours Sincerely,',{b:true})],{al:AlignmentType.RIGHT,bf:60,af:60}),
-    BLK(),
-    P([TR('Superintending Engineer,',{b:true})],{af:20}),
-    P([TR('SCADA/Hyderabad.')],{af:80}),
-    P([TR('Copy to the '+deLn)],{bf:80}),
-  ]}]});
-}
-
-function col(){
-  return{doc_type:DT,is_draft:isDraft,
-    d_no:v('d_no'),fy_s:v('fy_s'),fy_f:v('fy_f'),memo_date:v('memo_date'),
-    division:v('sel_div'),subdivision:v('sel_sub'),section:v('sel_sec'),
-    ae:v('f_ae'),ade:v('f_ade'),de:v('f_de'),
-    est_cat:v('sel_cat'),pm_type:v('sel_pm'),works_type:v('works_type'),
-    work_desc:v('work_desc'),lr_prefix:v('lr_prefix'),
-    f_no:v('f_no'),lines_dno:v('lines_dno'),lines_date:v('lines_date'),
-    lines_lr:v('lines_lr'),estimate_no:v('estimate_no'),
-    amount:v('amount'),less_amt:v('less_amt'),in_words:v('in_words'),
-    amt_g:v('amt_g'),amt_n:v('amt_n'),words_g:v('words_g'),words_n:v('words_n'),
-    sanc_no:v('sanc_no'),sanc_date:v('sanc_date'),acct_no:v('acct_no')||'74.1',
-    consumer:v('consumer'),encl:v('encl')||'Estimate',
-    saved_on:new Date().toLocaleString('en-IN'),id:Date.now()};
-}
-function vld(d){
-  if(!d.d_no)return'D.No. required';if(!d.memo_date)return'Date required';
-  if(!d.division)return'Division required';if(!d.estimate_no)return'Estimate No. required';
-  if(!d.work_desc)return'Work Description required';
-  if(d.doc_type==='PM'&&!d.amount)return'Amount required';
-  if(d.doc_type==='Z'&&(!d.amt_g||!d.amt_n))return'G & N amounts required';
-  return null;
+  const nb2='<w:top w:val="none" w:sz="0"/><w:left w:val="none" w:sz="0"/><w:bottom w:val="none" w:sz="0"/><w:right w:val="none" w:sz="0"/>';
+  const addrTable='<w:tbl><w:tblPr><w:tblW w:w="5000" w:type="pct"/><w:tblBorders><w:insideH w:val="none"/><w:insideV w:val="none"/></w:tblBorders></w:tblPr><w:tr>'+
+    '<w:tc><w:tcPr><w:tcBorders>'+nb2+'</w:tcBorders></w:tcPr>'+
+    para(run('From',true),undefined,0,30)+para(run('The Superintending Engineer,',true),undefined,0,20)+para(run('SCADA/TGSPDCL,'),undefined,0,20)+para(run('GTS Colony, Erragadda,'),undefined,0,20)+para(run('Hyderabad.'))+
+    '</w:tc><w:tc><w:tcPr><w:tcBorders>'+nb2+'</w:tcBorders></w:tcPr>'+
+    para(run('To',true),undefined,0,30)+para(run('The Chief Engineer/Operation,',true),undefined,0,20)+para(run('Metro Zone, TGSPDCL,'),undefined,0,20)+para(run('Mint Compound,'),undefined,0,20)+para(run('Hyderabad.'))+
+    '</w:tc></w:tr></w:tbl>';
+  const cAmt=d.amount?run('Rs.'+parseInt(d.amount).toLocaleString('en-IN')+'/-(',true)+run(d.in_words||'',true)+run(')',true):run('Rs.___/-');
+  return hdrTable()+blk()+addrTable+blk()+
+    para(run(mLn,true),undefined,60,80)+
+    para(run('Sir,'),undefined,60,80)+
+    '<w:p><w:pPr><w:jc w:val="both"/><w:spacing w:before="60" w:after="80"/></w:pPr>'+run('Sub:-\t',true)+run('TGSPDCL - SCADA Circle - Hyd - Estimate for '+d.work_desc+(d.consumer?' on request of consumer '+d.consumer:'')+' - Submitted for Necessary Sanction - Reg.')+'</w:p>'+
+    para(run('Ref:-1) S.P.O.O.(CGM-(O&M))Ms. No.844, Dt.22.12.2017'),undefined,60,30,720)+
+    para(run('2) Memo.No.CGM(O&M)/SE(O&M)/DE(O&M)-I/F.No.D.O.P/D.No.230/20, Dt.21.05.20'),undefined,0,30,1080)+
+    para(run('3) '+d.lines_lr),undefined,0,30,1080)+
+    para(run('4) SAP Estimate No.'+d.estimate_no),undefined,0,30,1080)+
+    para(run('* * *'),'center',100,100)+
+    '<w:p><w:pPr><w:jc w:val="both"/><w:spacing w:before="80" w:after="80"/></w:pPr>'+run('\tThe estimate for ')+cAmt+run(' for '+d.work_desc+(d.consumer?' on request of consumer '+d.consumer:'')+' is herewith submitted.')+'</w:p>'+
+    para(run('\t\tIt is requested to arrange to sanction the above estimate at the earliest please.'),undefined,60,140)+
+    para(run('Encl: 1) '+(d.encl||'Estimate')),undefined,60,200)+
+    para(run('Yours Sincerely,',true),'right',60,60)+blk()+
+    para(run('Superintending Engineer,',true),undefined,0,20)+
+    para(run('SCADA/Hyderabad.'),undefined,0,80)+
+    para(run('Copy to the '+deLn),undefined,80,0)+
+    sectPr;
 }
 async function doDl(d){
-  if(!window.docx||!window.docx.Packer){toast('Word library not loaded. Check internet connection and refresh.','err');return;}
   try{
-    const doc=await buildDoc(d);
-    const blob=await window.docx.Packer.toBlob(doc);
+    if(typeof JSZip==='undefined'){toast('JSZip not loaded \u2014 check internet & refresh','err');return;}
+    const bodyXml=buildDocXml(d);
+    const docXml='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n'+
+      '<w:document xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" '+
+      'xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">'+
+      '<w:body>'+bodyXml+'</w:body></w:document>';
+    const relsXml='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n'+
+      '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'+
+      '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>';
+    const stylesXml='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n'+
+      '<w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">'+
+      '<w:docDefaults><w:rPrDefault><w:rPr>'+
+      '<w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman" w:cs="Times New Roman"/>'+
+      '<w:sz w:val="24"/><w:szCs w:val="24"/></w:rPr></w:rPrDefault></w:docDefaults>'+
+      '<w:style w:type="paragraph" w:styleId="Normal"><w:name w:val="Normal"/>'+
+      '<w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:sz w:val="24"/></w:rPr></w:style></w:styles>';
+    const ctXml='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n'+
+      '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">'+
+      '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>'+
+      '<Default Extension="xml" ContentType="application/xml"/>'+
+      '<Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>'+
+      '<Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/></Types>';
+    const rootRels='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n'+
+      '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'+
+      '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>';
+    const zip=new JSZip();
+    zip.file('[Content_Types].xml',ctXml);
+    zip.file('_rels/.rels',rootRels);
+    zip.file('word/document.xml',docXml);
+    zip.file('word/styles.xml',stylesXml);
+    zip.file('word/_rels/document.xml.rels',relsXml);
+    const blob=await zip.generateAsync({type:'blob',mimeType:'application/vnd.openxmlformats-officedocument.wordprocessingml.document'});
     const mode=d.is_draft?'_DRAFT':'_FINAL';
     const fn=(d.doc_type==='PM'?'PM_Order':d.doc_type==='Z'?'Z_Estimate':'CGM_Letter')+mode+'_D'+d.d_no+'_'+d.estimate_no+'.docx';
     const url=URL.createObjectURL(blob);
     const a=document.createElement('a');a.href=url;a.download=fn;
     document.body.appendChild(a);a.click();
-    setTimeout(()=>{URL.revokeObjectURL(url);a.remove();},2000);
-  }catch(e){toast('Download error: '+e.message,'err');console.error(e);}
+    setTimeout(()=>{URL.revokeObjectURL(url);a.remove();},3000);
+  }catch(e){toast('Download error: '+e.message,'err');console.error('doDl error:',e);}
 }
 async function subDoc(){
   const d=col(),e=vld(d);if(e){toast(e,'err');return;}
