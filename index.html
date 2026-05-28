@@ -8,7 +8,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
-<script src="https://unpkg.com/docx@8.5.0/build/index.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
 :root{
@@ -965,6 +965,7 @@ function vld(d){
   return null;
 }
 async function doDl(d){
+  if(!window.docx||!window.docx.Packer){toast('Word library not loaded. Check internet connection and refresh.','err');return;}
   try{
     const doc=await buildDoc(d);
     const blob=await window.docx.Packer.toBlob(doc);
@@ -974,7 +975,7 @@ async function doDl(d){
     const a=document.createElement('a');a.href=url;a.download=fn;
     document.body.appendChild(a);a.click();
     setTimeout(()=>{URL.revokeObjectURL(url);a.remove();},2000);
-  }catch(e){toast('Error: '+e.message,'err');console.error(e);}
+  }catch(e){toast('Download error: '+e.message,'err');console.error(e);}
 }
 async function subDoc(){
   const d=col(),e=vld(d);if(e){toast(e,'err');return;}
@@ -1062,7 +1063,7 @@ function rdash(){
       +'<td><span class="badge '+(r.is_draft?'b-dr':'b-gr')+'">'+(r.is_draft?'DRAFT':'FINAL')+'</span></td>'
       +'<td style="font-size:11px;color:var(--t3)">'+fd(r.memo_date)+'</td>'
       +'<td><button class="ab" onclick="reDl('+idx+')">⬇</button></td></tr>';
-  }).join(''):'<tr><td colspan="8" style="text-align:center;padding:36px;color:var(--t3);font-size:13px">No estimates yet. <span style="color:var(--blue);cursor:pointer;font-weight:700" onclick="sw('newdoc')">Create your first →</span></td></tr>';
+  }).join(''):'<tr><td colspan="8" style="text-align:center;padding:36px;color:var(--t3);font-size:13px">No estimates yet. <span style="color:var(--blue);cursor:pointer;font-weight:700" onclick="sw(\'newdoc\')">Create your first →</span></td></tr>';
   buildChart(recs);
 }
 function buildChart(recs){
