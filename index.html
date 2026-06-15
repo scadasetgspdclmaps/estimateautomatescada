@@ -11,6 +11,10 @@
 <!-- docx generated inline via XML+ZIP, no external library needed -->
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mammoth@1.6.0/mammoth.browser.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 <style>
 :root{
   --navy:#0f1b3d;--blue:#2563eb;--blue-l:#dbeafe;--green:#10b981;--green-l:#d1fae5;
@@ -253,6 +257,12 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
 .ssb{font-size:11.5px;color:var(--t2);line-height:1.7}
 .ssb code{background:#f1f5f9;padding:1px 5px;border-radius:4px;font-family:'DM Mono',monospace;font-size:11px;color:#1d4ed8}
 
+
+/* ── ESTIMATE AI VERIFICATION ── */
+.ai-hero{background:linear-gradient(135deg,#0f172a,#1e3a8a 55%,#0ea5e9);border-radius:16px;padding:22px 26px;color:#fff;margin-bottom:16px;display:flex;justify-content:space-between;gap:18px;align-items:center;overflow:hidden;position:relative}
+.ai-hero h2{font-size:18px;font-weight:800;margin-bottom:5px}.ai-hero p{font-size:12.5px;opacity:.75;line-height:1.7;max-width:760px}.ai-pill{background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.16);padding:6px 12px;border-radius:999px;font-size:11.5px;font-weight:700;white-space:nowrap}
+.ai-grid{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(340px,.85fr);gap:14px;align-items:start}.ai-card{background:var(--card);border:1px solid var(--bdr);border-radius:var(--r);box-shadow:var(--sh);padding:18px 20px;margin-bottom:14px}.ai-card h3{font-size:13.5px;font-weight:800;margin-bottom:4px}.ai-card p{font-size:11.5px;color:var(--t3);line-height:1.7}.drop{border:2px dashed var(--bdr);border-radius:12px;padding:14px;background:#f8fafc;transition:.15s;margin-top:10px}.drop:hover{border-color:var(--blue);background:#eff6ff}.drop label{font-size:12px;font-weight:800;color:var(--t2);display:block;margin-bottom:7px}.drop input{width:100%;font-size:12px}.ai-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}.ai-btn{border:none;border-radius:999px;padding:9px 15px;font-family:inherit;font-size:12.5px;font-weight:800;cursor:pointer;transition:.14s}.ai-btn.p{background:var(--blue);color:#fff}.ai-btn.g{background:var(--green);color:#fff}.ai-btn.a{background:var(--amber);color:#fff}.ai-btn.o{background:#fff;border:1.5px solid var(--bdr);color:var(--t2)}.ai-btn:hover{transform:translateY(-1px);box-shadow:0 5px 14px rgba(0,0,0,.12)}.ai-status{font-size:11.5px;color:var(--t3);line-height:1.7;margin-top:8px}.ai-kv{display:grid;grid-template-columns:repeat(2,1fr);gap:9px;margin-top:12px}.ai-kv .fl input,.ai-kv .fl select{background:#fff}.ai-text{width:100%;min-height:130px;border:1.5px solid var(--bdr);border-radius:9px;padding:10px 12px;font-family:'DM Mono',monospace;font-size:11px;line-height:1.6;outline:none;resize:vertical;background:#fbfdff}.ai-text:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(37,99,235,.1)}.chk-list{display:grid;gap:7px;margin-top:10px}.chk{display:flex;align-items:center;gap:8px;border:1px solid var(--bdr);background:#f8fafc;border-radius:9px;padding:9px 11px;font-size:12px}.chk b{margin-left:auto;font-size:11px;border-radius:999px;padding:3px 8px}.chk.ok b{background:var(--green-l);color:#065f46}.chk.bad b{background:var(--red-l);color:#991b1b}.chk.warn b{background:var(--amber-l);color:#92400e}.def-list{display:grid;gap:8px;margin-top:10px}.def{border-left:4px solid var(--bdr);background:#f8fafc;border-radius:9px;padding:10px 12px}.def.high{border-left-color:var(--red)}.def.med{border-left-color:var(--amber)}.def.low{border-left-color:var(--blue)}.def-title{display:flex;justify-content:space-between;gap:8px;font-size:12.5px;font-weight:800}.def-title span{font-size:10.5px;border-radius:999px;padding:2px 8px;background:#fff;border:1px solid var(--bdr);white-space:nowrap}.def p{font-size:11.5px;color:var(--t2);line-height:1.6;margin-top:4px}.def-fb{display:flex;gap:6px;margin-top:8px}.def-fb button{font-family:inherit;font-size:10.5px;border:1px solid var(--bdr);background:#fff;border-radius:999px;padding:4px 8px;cursor:pointer}.score{display:flex;align-items:center;gap:12px;margin-top:10px}.score-ring{width:74px;height:74px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:conic-gradient(var(--green) 0deg,#e2e8f0 0deg);font-weight:900;font-size:18px}.score div:last-child{font-size:12px;color:var(--t2);line-height:1.7}.ai-report{white-space:pre-wrap;background:#0f172a;color:#e5e7eb;border-radius:10px;padding:14px;font-family:'DM Mono',monospace;font-size:11px;line-height:1.7;max-height:380px;overflow:auto;margin-top:10px}.ai-mini{font-size:10.5px;color:var(--t3);margin-top:6px;line-height:1.6}@media(max-width:1050px){.ai-grid{grid-template-columns:1fr}.ai-kv{grid-template-columns:1fr}}
+
 /* ── TOAST ── */
 #toast{position:fixed;bottom:22px;right:22px;padding:12px 18px;border-radius:11px;font-size:13px;
   font-weight:700;z-index:9999;box-shadow:0 8px 28px rgba(0,0,0,.2);display:flex;align-items:center;
@@ -275,6 +285,11 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
   <div class="ni" onclick="sw('newdoc')" id="ni-newdoc">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
     <span class="ni-l">New Document</span>
+  </div>
+
+  <div class="ni" onclick="sw('verify')" id="ni-verify">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+    <span class="ni-l">AI Verification</span>
   </div>
   <div class="ni" onclick="sw('records')" id="ni-records">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
@@ -521,6 +536,89 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
       </div>
     </div>
 
+
+
+    <!-- ESTIMATE AI VERIFICATION -->
+    <div class="page" id="page-verify">
+      <div class="ai-hero">
+        <div>
+          <h2>Estimate Upload & AI Verification</h2>
+          <p>Upload SAP estimate copy, breakdown report and field images. The web page extracts available text, checks matching with breakdown details, prepares a concise verification report, and can auto-fill the existing sanction-copy wizard.</p>
+        </div>
+        <div class="ai-pill">Web based · Firebase ready · Human feedback learning</div>
+      </div>
+      <div class="ai-grid">
+        <div>
+          <div class="ai-card">
+            <h3>1) Upload Estimate / SAP Copy</h3>
+            <p>PDF, Word, Excel, CSV, TXT and image files are supported. For scanned PDFs, paste OCR text manually if browser extraction is weak.</p>
+            <div class="drop"><label>SAP Estimate / Estimate Copy</label><input type="file" id="ai_est_file" accept=".pdf,.docx,.xlsx,.xls,.csv,.txt,.png,.jpg,.jpeg"></div>
+            <div class="drop"><label>Breakdown Report / SCADA Outage Report</label><input type="file" id="ai_bd_file" accept=".pdf,.docx,.xlsx,.xls,.csv,.txt,.png,.jpg,.jpeg"></div>
+            <div class="drop"><label>Field Images / Evidence</label><input type="file" id="ai_img_files" multiple accept=".png,.jpg,.jpeg,.webp,.pdf"></div>
+            <div class="ai-actions">
+              <button class="ai-btn p" onclick="aiExtractAll()">🔎 Extract Details</button>
+              <button class="ai-btn o" onclick="aiClearAll()">Clear</button>
+            </div>
+            <div class="ai-status" id="ai_status">No files processed yet.</div>
+          </div>
+
+          <div class="ai-card">
+            <h3>2) Extracted Estimate Details</h3>
+            <p>Review and correct extracted details before verification. These values can be pushed directly into the existing sanction-copy form.</p>
+            <div class="ai-kv">
+              <div class="fl"><label>Estimate No.</label><input id="ai_est_no" placeholder="SAP / Estimate No."></div>
+              <div class="fl"><label>Document Type</label><select id="ai_doc_type"><option value="PM">PM Order</option><option value="Z">Z-Estimate</option><option value="CGM">CGM Letter</option></select></div>
+              <div class="fl"><label>Division</label><input id="ai_division" placeholder="Division"></div>
+              <div class="fl"><label>Sub-Division</label><input id="ai_subdivision" placeholder="Sub-Division"></div>
+              <div class="fl"><label>Section</label><input id="ai_section" placeholder="Section"></div>
+              <div class="fl"><label>Feeder Name</label><input id="ai_feeder" placeholder="33KV feeder name"></div>
+              <div class="fl"><label>Substation</label><input id="ai_ss" placeholder="33/11KV SS"></div>
+              <div class="fl"><label>EHT SS</label><input id="ai_eht" placeholder="132KV / 220KV source"></div>
+              <div class="fl"><label>Breakdown Date</label><input id="ai_bd_date" type="date"></div>
+              <div class="fl"><label>Estimate Date</label><input id="ai_est_date" type="date"></div>
+              <div class="fl"><label>PM Order Type</label><input id="ai_pm_type" placeholder="PM22 / PM58 / etc"></div>
+              <div class="fl"><label>Works Budget</label><select id="ai_budget"><option value="O&M">O&M</option><option value="R&M">R&M</option><option value="T&D">T&D</option></select></div>
+              <div class="fl"><label>Gross Amount ₹</label><input id="ai_gross" type="number" placeholder="Gross"></div>
+              <div class="fl"><label>Net / Sanction Amount ₹</label><input id="ai_net" type="number" placeholder="Net amount"></div>
+            </div>
+            <div class="fl" style="margin-top:10px"><label>Work Description</label><textarea id="ai_work" rows="4" placeholder="Extracted work description"></textarea></div>
+            <div class="ai-actions">
+              <button class="ai-btn a" onclick="aiVerify()">✅ Run Verification</button>
+              <button class="ai-btn g" onclick="aiApplyToSanction()">➡ Auto-fill Sanction Form</button>
+              <button class="ai-btn p" onclick="aiGenerateSanction()">📄 Generate Sanction Copy</button>
+            </div>
+          </div>
+
+          <div class="ai-card">
+            <h3>Manual Text / OCR Correction</h3>
+            <p>Paste text from scanned PDFs here if automatic extraction is incomplete. This text is also used for verification.</p>
+            <textarea class="ai-text" id="ai_manual_text" placeholder="Paste SAP estimate / breakdown report text here..."></textarea>
+          </div>
+        </div>
+
+        <div>
+          <div class="ai-card">
+            <h3>Verification Score</h3>
+            <div class="score"><div class="score-ring" id="ai_score_ring">--</div><div><b id="ai_score_title">Not checked</b><br><span id="ai_score_note">Run verification after extraction.</span></div></div>
+          </div>
+          <div class="ai-card">
+            <h3>Attachment Checklist</h3>
+            <div class="chk-list" id="ai_checklist"></div>
+          </div>
+          <div class="ai-card">
+            <h3>Defects / Observations</h3>
+            <div class="def-list" id="ai_defects"><div style="color:var(--t3);font-size:12px">No defects checked yet.</div></div>
+          </div>
+          <div class="ai-card">
+            <h3>Concise Verification Report</h3>
+            <div class="ai-actions" style="margin-top:0"><button class="ai-btn o" onclick="aiDownloadReport()">⬇ Download Report</button><button class="ai-btn o" onclick="aiSaveVerification()">💾 Save Verification</button></div>
+            <div class="ai-report" id="ai_report">Report will appear here after verification.</div>
+            <div class="ai-mini">Learning method: officer feedback is saved locally and in Firebase when connected. The page uses that feedback for future defect suggestions; it does not blindly alter sanction format.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- RECORDS -->
     <div class="page" id="page-records">
       <div class="rt">
@@ -674,7 +772,7 @@ const PM_DATA=[
 
 let db=null,DT='PM',isDraft=false,allSecs=[],allPM=PM_DATA.slice(),cStep=1;
 const ST='tgspdcl_v5';
-const PAGES={dashboard:'Dashboard',newdoc:'New Document',records:'Records',master:'Master Data',setup:'Firebase Setup'};
+const PAGES={dashboard:'Dashboard',newdoc:'New Document',verify:'AI Verification',records:'Records',master:'Master Data',setup:'Firebase Setup'};
 
 function sw(t){
   document.querySelectorAll('.ni').forEach(el=>el.classList.toggle('on',el.id==='ni-'+t));
@@ -684,6 +782,7 @@ function sw(t){
   if(t==='dashboard')rdash();
   if(t==='records')rrec();
   if(t==='master'){rall();padivs();}
+  if(t==='verify'){aiInitChecklist();}
 }
 function qnew(t){setDT(t);sw('newdoc');gs2(2);}
 
@@ -976,6 +1075,26 @@ async function doDl(d){
     setTimeout(()=>{URL.revokeObjectURL(url);a.remove();},3000);
   }catch(e){toast('Download error: '+e.message,'err');console.error('doDl error:',e);}
 }
+
+function col(){
+  const d={id:Date.now(),saved_on:new Date().toISOString(),doc_type:DT,is_draft:isDraft};
+  ['d_no','fy_s','fy_f','memo_date','sel_div','sel_sub','sel_sec','lines_lr','estimate_no','sel_pm','works_type','work_desc','amount','less_amt','in_words','amt_g','amt_n','words_g','words_n','sanc_no','sanc_date','acct_no','consumer','encl'].forEach(id=>d[id]=v(id));
+  d.division=d.sel_div;d.subdivision=d.sel_sub;d.section=d.sel_sec;d.pm_type=d.sel_pm;
+  d.ae=v('f_ae');d.ade=v('f_ade');d.de=v('f_de');
+  return d;
+}
+function vld(d){
+  if(!d.d_no)return'Enter D.No.';
+  if(!d.memo_date)return'Select memo date';
+  if(!d.division)return'Select Division';
+  if(!d.work_desc)return'Enter Work Description';
+  if(!d.estimate_no)return'Enter Estimate No.';
+  if(d.doc_type==='Z'){
+    if(!d.amt_g||!d.amt_n)return'Enter Gross and Net amounts';
+  }else if(!d.amount)return'Enter amount';
+  return'';
+}
+
 async function subDoc(){
   const d=col(),e=vld(d);if(e){toast(e,'err');return;}
   const r=getRec();r.push(d);saveRec(r);
@@ -1140,6 +1259,135 @@ async function saveSec(){
     await db.collection('sections').doc(id).set(obj,{merge:true});}
   rsec();toast('Section saved!','ok');
 }
+
+
+
+/* ── ESTIMATE UPLOAD + AI VERIFICATION MODULE ── */
+const AI_STORE='tgspdcl_ai_verifications_v1';
+const AI_FB='tgspdcl_ai_feedback_v1';
+let aiRaw={estimate:'',breakdown:'',manual:'',imageNames:[]},aiLast={defects:[],checks:[],score:0,report:''};
+function aiVal(id){return document.getElementById(id)?.value?.trim()||'';}
+function aiSet(id,val){const el=document.getElementById(id);if(el&&val!==undefined&&val!==null&&String(val).trim()!=='')el.value=String(val).trim();}
+function aiInitChecklist(){if(!document.getElementById('ai_checklist'))return; if(!document.getElementById('ai_checklist').innerHTML)aiRenderChecklist([]);}
+function aiClearAll(){
+  ['ai_est_no','ai_division','ai_subdivision','ai_section','ai_feeder','ai_ss','ai_eht','ai_bd_date','ai_est_date','ai_pm_type','ai_gross','ai_net','ai_work','ai_manual_text'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  ['ai_est_file','ai_bd_file','ai_img_files'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  aiRaw={estimate:'',breakdown:'',manual:'',imageNames:[]};aiLast={defects:[],checks:[],score:0,report:''};
+  document.getElementById('ai_status').textContent='Cleared. Upload files again.';document.getElementById('ai_report').textContent='Report will appear here after verification.';document.getElementById('ai_defects').innerHTML='<div style="color:var(--t3);font-size:12px">No defects checked yet.</div>';aiSetScore(null);aiRenderChecklist([]);
+}
+async function aiExtractAll(){
+  const st=document.getElementById('ai_status');st.textContent='Reading uploaded files...';
+  try{
+    const ef=document.getElementById('ai_est_file').files[0],bf=document.getElementById('ai_bd_file').files[0],imgs=[...document.getElementById('ai_img_files').files];
+    aiRaw.imageNames=imgs.map(f=>f.name);aiRaw.manual=aiVal('ai_manual_text');
+    aiRaw.estimate=ef?await aiReadFile(ef,'estimate'):'';aiRaw.breakdown=bf?await aiReadFile(bf,'breakdown'):'';
+    if(imgs.length){st.textContent='Reading image file names and OCR where possible...';for(const f of imgs.slice(0,3)){if(/^image\//.test(f.type)&&window.Tesseract){try{const r=await Tesseract.recognize(f,'eng');aiRaw.breakdown+='\nIMAGE OCR '+f.name+'\n'+(r?.data?.text||'');}catch(e){}}}}
+    const all=[aiRaw.estimate,aiRaw.breakdown,aiRaw.manual].join('\n');
+    aiPopulateFromText(all);aiRenderChecklist([]);
+    st.textContent='Extraction completed. Review fields, then run verification. Text extracted: '+all.length.toLocaleString('en-IN')+' characters.';
+    toast('Estimate details extracted','ok');
+  }catch(e){st.textContent='Extraction failed: '+e.message;toast('Extraction error: '+e.message,'err');console.error(e);}
+}
+async function aiReadFile(f,kind){
+  const ext=(f.name.split('.').pop()||'').toLowerCase();
+  if(ext==='txt'||ext==='csv')return await f.text();
+  if(['xlsx','xls'].includes(ext)){
+    if(!window.XLSX)return await f.text();
+    const buf=await f.arrayBuffer(),wb=XLSX.read(buf,{type:'array'});let out='';
+    wb.SheetNames.forEach(n=>{out+='\nSHEET '+n+'\n'+XLSX.utils.sheet_to_csv(wb.Sheets[n]);});return out;
+  }
+  if(ext==='docx'){
+    if(window.mammoth){const r=await mammoth.extractRawText({arrayBuffer:await f.arrayBuffer()});return r.value||'';}
+    return '';
+  }
+  if(ext==='pdf'){
+    if(window.pdfjsLib){
+      pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+      const pdf=await pdfjsLib.getDocument({data:await f.arrayBuffer()}).promise;let out='';
+      for(let i=1;i<=Math.min(pdf.numPages,8);i++){const pg=await pdf.getPage(i),tc=await pg.getTextContent();out+='\nPAGE '+i+'\n'+tc.items.map(x=>x.str).join(' ');}return out;
+    }
+    return '';
+  }
+  if(/^image\//.test(f.type)&&window.Tesseract){const r=await Tesseract.recognize(f,'eng');return r?.data?.text||'';}
+  return '';
+}
+function aiClean(s){return (s||'').replace(/\s+/g,' ').trim();}
+function aiFirst(re,txt){const m=txt.match(re);return m?aiClean(m[1]||m[0]):'';}
+function aiDate(s){
+  if(!s)return'';let m=s.match(/(\d{1,2})[\.\/-](\d{1,2})[\.\/-](\d{2,4})/);if(!m)return'';
+  let d=m[1].padStart(2,'0'),mo=m[2].padStart(2,'0'),y=m[3];if(y.length===2)y='20'+y;return y+'-'+mo+'-'+d;
+}
+function aiAmount(s){if(!s)return'';let m=s.match(/(?:Rs\.?|₹|INR)?\s*([0-9]{1,3}(?:[, ]?[0-9]{2,3})+|[0-9]{4,})\s*(?:\/-|only)?/i);return m?m[1].replace(/[, ]/g,''):'';}
+function aiPopulateFromText(txt){
+  txt=txt||'';const low=txt.toLowerCase();
+  aiSet('ai_est_no',aiFirst(/(?:SAP\s*)?(?:Estimate|Est\.?|Z[-\s]?Estimate)\s*(?:No|Number|#)?\s*[:\-]?\s*([A-Z0-9\/\-]{5,})/i,txt)||aiFirst(/\b(9\d{9,13})\b/,txt));
+  aiSet('ai_work',aiFirst(/(?:Name of Work|Work Description|Description of Work|Sub\s*:)\s*[:\-]?\s*(.{20,450}?)(?:\s+(?:Ref\s*:|Estimate\s*No|Amount|Gross|Net|Division|Section|$))/i,txt));
+  aiSet('ai_division',aiPickKnown(txt,UDIVS));
+  aiSet('ai_subdivision',aiPickKnown(txt,[...new Set(HIER.map(h=>h[1]))]));
+  aiSet('ai_section',aiPickKnown(txt,[...new Set(HIER.map(h=>h[2]))]));
+  aiSet('ai_feeder',aiFirst(/([\w\s\.\-\/]+?\s*(?:33\s*KV|33KV)?\s*Feeder[\w\s\.\-\/]*)/i,txt)||aiFirst(/(?:Feeder Name|Feeder)\s*[:\-]?\s*([A-Z0-9\s\.\-\/]{3,80})/i,txt));
+  aiSet('ai_ss',aiFirst(/(?:33\/11\s*KV\s*)?([A-Z0-9\s\.\-\/]+?\s*SS)\b/i,txt));
+  aiSet('ai_eht',aiFirst(/(?:132|220|400)\s*KV\s*([A-Z0-9\s\.\-\/]+?)(?:\s*EHT|\s*SS)/i,txt));
+  const date=aiDate(aiFirst(/(?:Breakdown|Outage|Failure)\s*(?:Date)?\s*[:\-]?\s*(\d{1,2}[\.\/-]\d{1,2}[\.\/-]\d{2,4})/i,txt));
+  aiSet('ai_bd_date',date);aiSet('ai_est_date',aiDate(aiFirst(/(?:Estimate Date|Dt\.?|Date)\s*[:\-]?\s*(\d{1,2}[\.\/-]\d{1,2}[\.\/-]\d{2,4})/i,txt)));
+  aiSet('ai_pm_type',aiFirst(/\b(PM\s*\d{2}|T[-\s]?\d{4}|\b9[78]0\b|\b985\b)\b/i,txt).replace(/\s+/g,''));
+  const gross=aiAmount(aiFirst(/(?:Gross|G Amount|Total Estimate Cost|Estimated Cost)\s*[:\-]?\s*((?:Rs\.?|₹|INR)?\s*[0-9, ]{4,})/i,txt));
+  const net=aiAmount(aiFirst(/(?:Net|N Amount|Sanction Amount|Amount)\s*[:\-]?\s*((?:Rs\.?|₹|INR)?\s*[0-9, ]{4,})/i,txt));
+  aiSet('ai_gross',gross||net);aiSet('ai_net',net||gross);
+  if(low.includes('t&d')||low.includes('t & d'))aiSet('ai_budget','T&D');else if(low.includes('r&m')||low.includes('r & m')||low.includes('breakdown'))aiSet('ai_budget','R&M');
+  if(low.includes('z-estimate')||low.includes('z estimate'))aiSet('ai_doc_type','Z');else if(low.includes('chief engineer')||low.includes('cgm'))aiSet('ai_doc_type','CGM');else aiSet('ai_doc_type','PM');
+}
+function aiPickKnown(txt,list){const l=txt.toLowerCase();return list.find(x=>l.includes(String(x).toLowerCase()))||'';}
+function aiVerify(){
+  aiRaw.manual=aiVal('ai_manual_text');const est=[aiRaw.estimate,aiRaw.manual].join('\n').toLowerCase(),bd=[aiRaw.breakdown,aiRaw.manual].join('\n').toLowerCase();
+  const defects=[],checks=[];const add=(sev,title,msg)=>defects.push({sev,title,msg});const ck=(name,status,note)=>checks.push({name,status,note});
+  const imgCount=aiRaw.imageNames.length,work=aiVal('ai_work'),feeder=aiVal('ai_feeder'),estNo=aiVal('ai_est_no'),bdDate=aiVal('ai_bd_date'),estDate=aiVal('ai_est_date'),amt=+aiVal('ai_net')||+aiVal('ai_gross')||0,pm=aiVal('ai_pm_type'),budget=aiVal('ai_budget');
+  ck('SAP estimate copy',document.getElementById('ai_est_file').files[0]?'ok':'bad',document.getElementById('ai_est_file').files[0]?.name||'Missing');
+  ck('Breakdown / outage report',document.getElementById('ai_bd_file').files[0]?'ok':'bad',document.getElementById('ai_bd_file').files[0]?.name||'Missing');
+  ck('Field image evidence',imgCount>=2?'ok':imgCount?'warn':'bad',imgCount?imgCount+' file(s) attached':'No images attached');
+  ck('After-work / completion image',aiRaw.imageNames.some(n=>/after|complete|final|restored/i.test(n))?'ok':'warn','Use filename containing after / complete / final if available');
+  ck('Damage / before image',aiRaw.imageNames.some(n=>/damage|before|fault|break|joint|cable/i.test(n))?'ok':'warn','Use filename containing damage / before / fault if available');
+  if(!estNo)add('high','Estimate number missing','SAP / Estimate number could not be identified. Enter it before sanction copy.');
+  if(!work||work.length<25)add('high','Work description weak','Work description is missing or too short. It should clearly mention feeder, breakdown and material/work.');
+  if(!feeder)add('med','Feeder name missing','Feeder name could not be extracted. Verify with breakdown report.');
+  else if(bd && !bd.includes(feeder.toLowerCase().split(' feeder')[0].trim()))add('high','Feeder mismatch','Extracted feeder name is not clearly found in breakdown report text.');
+  if(!bdDate)add('med','Breakdown date missing','Breakdown/outage date is not available.');
+  if(bdDate&&estDate){const diff=Math.abs((new Date(estDate)-new Date(bdDate))/(86400000));if(diff>7)add('med','Estimate date far from breakdown date','Estimate date differs from breakdown date by '+Math.round(diff)+' days.');}
+  if(!amt)add('high','Amount missing','Gross/net/sanction amount could not be extracted.');
+  if(amt>500000)add('med','High estimate amount','Amount is above ₹5 lakh. Confirm technical sanction authority and budget provision.');
+  if(/breakdown|fault|joint|cable|failed|failure/i.test(work)&&budget==='T&D')add('med','Budget head needs review','Breakdown/cable fault work usually falls under R&M/O&M unless it is capital/T&D work.');
+  if(/33\s*kv|33kv|cable|joint|breakdown/i.test(work)&&pm&&!/(PM22|PM58|PM34|T-2427|T-2430|T-2443|T-2461)/i.test(pm))add('low','PM order type may be wrong','For 33KV breakdown/cable work, verify PM code against PM22/PM58 or relevant T&D code.');
+  const feedback=JSON.parse(localStorage.getItem(AI_FB)||'[]');
+  feedback.slice(-30).forEach(f=>{if(f.correct&&f.title&&work&&f.key&&work.toLowerCase().includes(f.key))add('low','Learned previous issue: '+f.title,'Similar wording was previously marked as a true defect by officer.');});
+  let score=100-defects.reduce((s,d)=>s+(d.sev==='high'?22:d.sev==='med'?12:5),0)-checks.filter(c=>c.status==='bad').length*10-checks.filter(c=>c.status==='warn').length*4;score=Math.max(0,Math.min(100,score));
+  aiLast={defects,checks,score,report:aiMakeReport(defects,checks,score)};aiRenderChecklist(checks);aiRenderDefects(defects);aiSetScore(score);document.getElementById('ai_report').textContent=aiLast.report;toast('Verification completed','ok');
+}
+function aiRenderChecklist(checks){
+  const base=checks.length?checks:[{name:'SAP estimate copy',status:'bad',note:'Pending'},{name:'Breakdown / outage report',status:'bad',note:'Pending'},{name:'Field image evidence',status:'bad',note:'Pending'},{name:'After-work / completion image',status:'warn',note:'Pending'},{name:'Damage / before image',status:'warn',note:'Pending'}];
+  document.getElementById('ai_checklist').innerHTML=base.map(c=>'<div class="chk '+c.status+'"><span>'+(c.status==='ok'?'✅':c.status==='warn'?'⚠️':'❌')+'</span><span>'+c.name+'<br><small style="color:var(--t3)">'+(c.note||'')+'</small></span><b>'+(c.status==='ok'?'Attached':c.status==='warn'?'Review':'Missing')+'</b></div>').join('');
+}
+function aiRenderDefects(defects){
+  document.getElementById('ai_defects').innerHTML=defects.length?defects.map((d,i)=>'<div class="def '+d.sev+'"><div class="def-title">'+d.title+'<span>'+d.sev.toUpperCase()+'</span></div><p>'+d.msg+'</p><div class="def-fb"><button onclick="aiFeedback('+i+',true)">Mark correct defect</button><button onclick="aiFeedback('+i+',false)">False alarm</button></div></div>').join(''):'<div class="def low"><div class="def-title">No major defects<span>OK</span></div><p>Estimate details are broadly matching. Officer review is still required before sanction.</p></div>';
+}
+function aiSetScore(score){const r=document.getElementById('ai_score_ring'),t=document.getElementById('ai_score_title'),n=document.getElementById('ai_score_note');if(score===null){r.textContent='--';r.style.background='conic-gradient(#e2e8f0 0deg,#e2e8f0 0deg)';t.textContent='Not checked';n.textContent='Run verification after extraction.';return;}r.textContent=score;const deg=score*3.6;r.style.background='conic-gradient('+(score>=75?'var(--green)':score>=50?'var(--amber)':'var(--red)')+' '+deg+'deg,#e2e8f0 0deg)';t.textContent=score>=75?'Process after officer review':score>=50?'Hold for clarification':'Do not process without correction';n.textContent=score>=75?'No major mismatch found by rule engine.':score>=50?'Some important fields need correction.':'Major estimate/breakdown mismatch or missing data.';}
+function aiMakeReport(defects,checks,score){
+  const rec=score>=75?'Process after officer review':score>=50?'Hold and seek clarification':'Do not process until defects are corrected';
+  return 'TGSPDCL SCADA - ESTIMATE VERIFICATION REPORT\n'+
+    'Generated: '+new Date().toLocaleString('en-IN')+'\n\n'+
+    'Estimate No.: '+(aiVal('ai_est_no')||'Not available')+'\nDivision / Section: '+(aiVal('ai_division')||'-')+' / '+(aiVal('ai_section')||'-')+'\nFeeder: '+(aiVal('ai_feeder')||'-')+'\nSubstation: '+(aiVal('ai_ss')||'-')+'\nBreakdown Date: '+(aiVal('ai_bd_date')||'-')+'\nPM Type / Budget: '+(aiVal('ai_pm_type')||'-')+' / '+(aiVal('ai_budget')||'-')+'\nAmount: ₹'+((+aiVal('ai_net')||+aiVal('ai_gross')||0).toLocaleString('en-IN'))+'\n\nWork Description:\n'+(aiVal('ai_work')||'-')+'\n\nChecklist:\n'+checks.map(c=>' - '+c.name+': '+c.status.toUpperCase()+' ('+(c.note||'')+')').join('\n')+'\n\nDefects / Observations:\n'+(defects.length?defects.map((d,i)=>(i+1)+'. ['+d.sev.toUpperCase()+'] '+d.title+' - '+d.msg).join('\n'):'No major defects found by rule engine.')+'\n\nVerification Score: '+score+'/100\nRecommendation: '+rec+'\n\nOfficer Remarks: ________________________________\n';
+}
+function aiFeedback(i,correct){const d=aiLast.defects[i];if(!d)return;const key=(aiVal('ai_work').toLowerCase().match(/(breakdown|joint|cable|feeder|ptr|rmu|vcb|relay|pole)/)||[''])[0];const fb={title:d.title,correct:!!correct,key:key||'',at:new Date().toISOString(),estimate_no:aiVal('ai_est_no')};const arr=JSON.parse(localStorage.getItem(AI_FB)||'[]');arr.push(fb);localStorage.setItem(AI_FB,JSON.stringify(arr));if(db){db.collection('estimate_ai_feedback').add(fb).catch(()=>{});}toast(correct?'Saved as true defect':'Saved as false alarm','ok');}
+function aiApplyToSanction(){
+  const doc=aiVal('ai_doc_type')||'PM';setDT(doc);sw('newdoc');
+  aiSet('estimate_no',aiVal('ai_est_no'));aiSet('memo_date',aiVal('ai_est_date')||new Date().toISOString().slice(0,10));aiSet('lines_date',aiVal('ai_bd_date')||aiVal('ai_est_date')||new Date().toISOString().slice(0,10));aiSet('work_desc',aiVal('ai_work'));aiSet('works_type',aiVal('ai_budget')||'O&M');
+  const div=aiVal('ai_division');if(div){aiSet('sel_div',div);onDiv();}const sub=aiVal('ai_subdivision');if(sub){aiSet('sel_sub',sub);onSub();}const sec=aiVal('ai_section');if(sec){aiSet('sel_sec',sec);onSec();}
+  const pm=aiVal('ai_pm_type');if(pm){const sel=document.getElementById('sel_pm');if([...sel.options].some(o=>o.value===pm))sel.value=pm;}
+  const gross=aiVal('ai_gross'),net=aiVal('ai_net')||gross;if(doc==='Z'){aiSet('amt_g',gross);aiSet('amt_n',net);cz();}else{aiSet('amount',net);ca();}
+  asmLr();upv();gs2(7);toast('Extracted details pushed to sanction form','ok');
+}
+async function aiGenerateSanction(){aiApplyToSanction();setTimeout(()=>dlOnly(),250);}
+function aiDownloadReport(){if(!aiLast.report){toast('Run verification first','err');return;}const a=document.createElement('a');a.href='data:text/plain;charset=utf-8,'+encodeURIComponent(aiLast.report);a.download='Estimate_Verification_'+(aiVal('ai_est_no')||new Date().toISOString().slice(0,10))+'.txt';a.click();}
+async function aiSaveVerification(){if(!aiLast.report){toast('Run verification first','err');return;}const rec={id:Date.now(),saved_on:new Date().toISOString(),estimate_no:aiVal('ai_est_no'),division:aiVal('ai_division'),section:aiVal('ai_section'),feeder:aiVal('ai_feeder'),amount:aiVal('ai_net')||aiVal('ai_gross'),score:aiLast.score,defects:aiLast.defects,checks:aiLast.checks,report:aiLast.report};const arr=JSON.parse(localStorage.getItem(AI_STORE)||'[]');arr.push(rec);localStorage.setItem(AI_STORE,JSON.stringify(arr));if(db){try{await db.collection('estimate_verifications').add(rec);}catch(e){}}toast('Verification saved','ok');}
 
 function saveFB(){
   const cfg={apiKey:v('cfg_key'),authDomain:v('cfg_auth'),projectId:v('cfg_proj'),
