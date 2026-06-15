@@ -550,7 +550,15 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
       <div class="ai-grid">
         <div>
           <div class="ai-card">
-            <h3>1) Upload Estimate / SAP Copy</h3>
+            <h3>1) Select Estimate Type First</h3>
+            <p>This selection controls extraction rules. PM orders take 9-series order numbers; T&D / Z-estimates take T-series or estimate references. Select this before uploading the file.</p>
+            <div class="ai-kv" style="grid-template-columns:1fr 1fr">
+              <div class="fl"><label>Estimate / Order Type <span class="req">*</span></label><select id="ai_upload_type" onchange="aiSyncUploadType()"><option value="">-- Select before upload --</option><option value="PM">PM Order / 9-Series</option><option value="Z">T&D / Z-Estimate / T-Series</option><option value="CGM">Other / CGM Letter</option></select></div>
+              <div class="fl"><label>Dispatch D.No. <span class="req">*</span></label><input id="ai_dispatch_no" placeholder="Enter D.No. before sanction copy" oninput="aiSet('ai_dispatch_no_2',this.value)"></div>
+            </div>
+          </div>
+          <div class="ai-card">
+            <h3>2) Upload Estimate / SAP Copy</h3>
             <p>PDF, Word, Excel, CSV, TXT and image files are supported. For scanned PDFs, paste OCR text manually if browser extraction is weak.</p>
             <div class="drop"><label>SAP Estimate / Estimate Copy</label><input type="file" id="ai_est_file" accept=".pdf,.docx,.xlsx,.xls,.csv,.txt,.png,.jpg,.jpeg"></div>
             <div class="drop"><label>Breakdown Report / SCADA Outage Report</label><input type="file" id="ai_bd_file" accept=".pdf,.docx,.xlsx,.xls,.csv,.txt,.png,.jpg,.jpeg"></div>
@@ -563,11 +571,12 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
           </div>
 
           <div class="ai-card">
-            <h3>2) Extracted Estimate Details</h3>
+            <h3>3) Extracted Estimate Details</h3>
             <p>Review and correct extracted details before verification. These values can be pushed directly into the existing sanction-copy form.</p>
             <div class="ai-kv">
-              <div class="fl"><label>Estimate No.</label><input id="ai_est_no" placeholder="SAP / Estimate No."></div>
-              <div class="fl"><label>Document Type</label><select id="ai_doc_type"><option value="PM">PM Order</option><option value="Z">Z-Estimate</option><option value="CGM">CGM Letter</option></select></div>
+              <div class="fl"><label>Estimate / PM Order No.</label><input id="ai_est_no" placeholder="PM: 9-series / T&D: T-series"></div>
+              <div class="fl"><label>Dispatch D.No.</label><input id="ai_dispatch_no_2" placeholder="Same as D.No. in sanction" oninput="aiSet('ai_dispatch_no',this.value)"></div>
+              <div class="fl"><label>Document Type</label><select id="ai_doc_type" onchange="aiSet('ai_upload_type',this.value)"><option value="PM">PM Order</option><option value="Z">T&D / Z-Estimate</option><option value="CGM">Other / CGM Letter</option></select></div>
               <div class="fl"><label>Division</label><input id="ai_division" placeholder="Division"></div>
               <div class="fl"><label>Sub-Division</label><input id="ai_subdivision" placeholder="Sub-Division"></div>
               <div class="fl"><label>Section</label><input id="ai_section" placeholder="Section"></div>
@@ -1269,14 +1278,17 @@ let aiRaw={estimate:'',breakdown:'',manual:'',imageNames:[]},aiLast={defects:[],
 function aiVal(id){return document.getElementById(id)?.value?.trim()||'';}
 function aiSet(id,val){const el=document.getElementById(id);if(el&&val!==undefined&&val!==null&&String(val).trim()!=='')el.value=String(val).trim();}
 function aiInitChecklist(){if(!document.getElementById('ai_checklist'))return; if(!document.getElementById('ai_checklist').innerHTML)aiRenderChecklist([]);}
+function aiSyncUploadType(){const t=aiVal('ai_upload_type');if(t){aiSet('ai_doc_type',t);} }
 function aiClearAll(){
-  ['ai_est_no','ai_division','ai_subdivision','ai_section','ai_feeder','ai_ss','ai_eht','ai_bd_date','ai_est_date','ai_pm_type','ai_gross','ai_net','ai_work','ai_manual_text'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  ['ai_est_no','ai_dispatch_no','ai_dispatch_no_2','ai_division','ai_subdivision','ai_section','ai_feeder','ai_ss','ai_eht','ai_bd_date','ai_est_date','ai_pm_type','ai_gross','ai_net','ai_work','ai_manual_text'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   ['ai_est_file','ai_bd_file','ai_img_files'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   aiRaw={estimate:'',breakdown:'',manual:'',imageNames:[]};aiLast={defects:[],checks:[],score:0,report:''};
   document.getElementById('ai_status').textContent='Cleared. Upload files again.';document.getElementById('ai_report').textContent='Report will appear here after verification.';document.getElementById('ai_defects').innerHTML='<div style="color:var(--t3);font-size:12px">No defects checked yet.</div>';aiSetScore(null);aiRenderChecklist([]);
 }
 async function aiExtractAll(){
-  const st=document.getElementById('ai_status');st.textContent='Reading uploaded files...';
+  const st=document.getElementById('ai_status');
+  if(!aiVal('ai_upload_type')){toast('Select PM Order / T&D / Other before uploading','err');st.textContent='Select estimate type first.';return;}
+  aiSyncUploadType();st.textContent='Reading uploaded files with '+aiVal('ai_upload_type')+' extraction rules...';
   try{
     const ef=document.getElementById('ai_est_file').files[0],bf=document.getElementById('ai_bd_file').files[0],imgs=[...document.getElementById('ai_img_files').files];
     aiRaw.imageNames=imgs.map(f=>f.name);aiRaw.manual=aiVal('ai_manual_text');
@@ -1317,37 +1329,75 @@ function aiDate(s){
   if(!s)return'';let m=s.match(/(\d{1,2})[\.\/-](\d{1,2})[\.\/-](\d{2,4})/);if(!m)return'';
   let d=m[1].padStart(2,'0'),mo=m[2].padStart(2,'0'),y=m[3];if(y.length===2)y='20'+y;return y+'-'+mo+'-'+d;
 }
-function aiAmount(s){if(!s)return'';let m=s.match(/(?:Rs\.?|₹|INR)?\s*([0-9]{1,3}(?:[, ]?[0-9]{2,3})+|[0-9]{4,})\s*(?:\/-|only)?/i);return m?m[1].replace(/[, ]/g,''):'';}
+function aiAmount(s){if(!s)return'';let m=s.match(/(?:Rs\.?|₹|INR)?\s*([0-9]{1,3}(?:[, ]?[0-9]{2,3})+|[0-9]{4,})(?:\.\d{1,2})?\s*(?:\/-|only)?/i);return m?m[1].replace(/[, ]/g,''):'';}
+function aiMoneyAfter(re,txt){const m=txt.match(re);return m?String(m[1]).replace(/,/g,'').trim():'';}
 function aiPopulateFromText(txt){
-  txt=txt||'';const low=txt.toLowerCase();
-  aiSet('ai_est_no',aiFirst(/(?:SAP\s*)?(?:Estimate|Est\.?|Z[-\s]?Estimate)\s*(?:No|Number|#)?\s*[:\-]?\s*([A-Z0-9\/\-]{5,})/i,txt)||aiFirst(/\b(9\d{9,13})\b/,txt));
-  aiSet('ai_work',aiFirst(/(?:Name of Work|Work Description|Description of Work|Sub\s*:)\s*[:\-]?\s*(.{20,450}?)(?:\s+(?:Ref\s*:|Estimate\s*No|Amount|Gross|Net|Division|Section|$))/i,txt));
-  aiSet('ai_division',aiPickKnown(txt,UDIVS));
-  aiSet('ai_subdivision',aiPickKnown(txt,[...new Set(HIER.map(h=>h[1]))]));
-  aiSet('ai_section',aiPickKnown(txt,[...new Set(HIER.map(h=>h[2]))]));
-  aiSet('ai_feeder',aiFirst(/([\w\s\.\-\/]+?\s*(?:33\s*KV|33KV)?\s*Feeder[\w\s\.\-\/]*)/i,txt)||aiFirst(/(?:Feeder Name|Feeder)\s*[:\-]?\s*([A-Z0-9\s\.\-\/]{3,80})/i,txt));
-  aiSet('ai_ss',aiFirst(/(?:33\/11\s*KV\s*)?([A-Z0-9\s\.\-\/]+?\s*SS)\b/i,txt));
-  aiSet('ai_eht',aiFirst(/(?:132|220|400)\s*KV\s*([A-Z0-9\s\.\-\/]+?)(?:\s*EHT|\s*SS)/i,txt));
-  const date=aiDate(aiFirst(/(?:Breakdown|Outage|Failure)\s*(?:Date)?\s*[:\-]?\s*(\d{1,2}[\.\/-]\d{1,2}[\.\/-]\d{2,4})/i,txt));
-  aiSet('ai_bd_date',date);aiSet('ai_est_date',aiDate(aiFirst(/(?:Estimate Date|Dt\.?|Date)\s*[:\-]?\s*(\d{1,2}[\.\/-]\d{1,2}[\.\/-]\d{2,4})/i,txt)));
-  aiSet('ai_pm_type',aiFirst(/\b(PM\s*\d{2}|T[-\s]?\d{4}|\b9[78]0\b|\b985\b)\b/i,txt).replace(/\s+/g,''));
-  const gross=aiAmount(aiFirst(/(?:Gross|G Amount|Total Estimate Cost|Estimated Cost)\s*[:\-]?\s*((?:Rs\.?|₹|INR)?\s*[0-9, ]{4,})/i,txt));
-  const net=aiAmount(aiFirst(/(?:Net|N Amount|Sanction Amount|Amount)\s*[:\-]?\s*((?:Rs\.?|₹|INR)?\s*[0-9, ]{4,})/i,txt));
-  aiSet('ai_gross',gross||net);aiSet('ai_net',net||gross);
-  if(low.includes('t&d')||low.includes('t & d'))aiSet('ai_budget','T&D');else if(low.includes('r&m')||low.includes('r & m')||low.includes('breakdown'))aiSet('ai_budget','R&M');
-  if(low.includes('z-estimate')||low.includes('z estimate'))aiSet('ai_doc_type','Z');else if(low.includes('chief engineer')||low.includes('cgm'))aiSet('ai_doc_type','CGM');else aiSet('ai_doc_type','PM');
+  txt=txt||'';const low=txt.toLowerCase();const typ=aiVal('ai_upload_type')||aiVal('ai_doc_type')||'PM';
+  aiSet('ai_doc_type',typ);
+  // PM order: prefer actual PM Order Number / 9-series. T&D: prefer T-series or Z-estimate reference.
+  let estNo='';
+  if(typ==='PM'){
+    estNo=aiFirst(/PM\s*Order\s*Number\s*[:\-]?\s*(9\d{7,14})/i,txt)||
+          aiFirst(/Order\s*Number\s*[:\-]?\s*(9\d{7,14})/i,txt)||
+          aiFirst(/\b(9\d{7,14})\b/,txt);
+  }else if(typ==='Z'){
+    estNo=aiFirst(/\b(T[-\s]?\d{3,6})\b/i,txt)||
+          aiFirst(/(?:Z[-\s]?Estimate|Estimate)\s*(?:No|Number|#)?\s*[:\-]?\s*([A-Z]*[-\s]?[0-9]{3,14})/i,txt)||
+          aiFirst(/\b(9\d{7,14})\b/,txt);
+  }else{
+    estNo=aiFirst(/(?:SAP\s*)?(?:Estimate|Est\.?|Order)\s*(?:No|Number|#)?\s*[:\-]?\s*([A-Z0-9\/\-]{5,})/i,txt)||aiFirst(/\b(9\d{7,14})\b/,txt);
+  }
+  aiSet('ai_est_no',estNo);
+  const work=aiFirst(/(?:Name of the Work|Name of Work|Work Description|Description of Work)\s*[:\-]?\s*(.{10,650}?)(?:\n\s*(?:General Data|PM50 Orders|PM Order Issued|Estimated Cost|Status of the Order)|\s{3,}(?:General Data|PM50 Orders|Estimated Cost)|$)/is,txt)||
+             aiFirst(/(?:Sub\s*:)\s*[:\-]?\s*(.{20,450}?)(?:\s+(?:Ref\s*:|Estimate\s*No|Amount|Gross|Net|Division|Section|$))/i,txt);
+  aiSet('ai_work',work);
+  // Section/subdivision/division: prefer Responsible Office / AE Lines and known hierarchy, not random words like South from MRT/South.
+  let section=aiFirst(/Responsible\s*Office\s*[:\-]?\s*[0-9\s\-]*\s*(?:AE|ADE|DE)\/?Lines\/?\s*([A-Za-z\s]+?)(?:\n|$)/i,txt)||
+              aiFirst(/([A-Za-z\s]+?)\s*Sub[-\s]?Division/i,txt)||
+              aiFirst(/(?:Section|Sec\.)\s*[:\-]?\s*([A-Za-z\s]+?)(?:\n|,|$)/i,txt);
+  section=aiClean(section).replace(/\s+/g,' ');
+  const knownSecs=[...new Set(HIER.map(h=>h[2]))];
+  const knownSubs=[...new Set(HIER.map(h=>h[1]))];
+  const matchedSec=knownSecs.find(x=>section&&x.toLowerCase()===section.toLowerCase())||aiPickKnown(txt,knownSecs);
+  const matchedSub=knownSubs.find(x=>section&&x.toLowerCase().includes(section.toLowerCase()))||aiPickKnown(txt,knownSubs);
+  const h=HIER.find(x=>(matchedSec&&x[2].toLowerCase()===matchedSec.toLowerCase())||(matchedSub&&x[1].toLowerCase()===matchedSub.toLowerCase()));
+  if(h){aiSet('ai_division',h[0]);aiSet('ai_subdivision',h[1]);aiSet('ai_section',h[2]);}
+  else{aiSet('ai_division',aiPickKnown(txt,UDIVS));aiSet('ai_subdivision',matchedSub);aiSet('ai_section',matchedSec||section);}
+  // Feeder/SS/source extraction
+  aiSet('ai_feeder',aiFirst(/(?:REPL\.?\s*OF\s*)?([A-Z0-9\s\.\-\/]+?\s+(?:INCMG|INCOMING|FEEDER|VCB)[A-Z0-9\s\.\-\/]*?)(?:\s*@|\n|\s{2,})/i,txt)||aiFirst(/(?:Feeder Name|Feeder)\s*[:\-]?\s*([A-Z0-9\s\.\-\/]{3,100})/i,txt));
+  aiSet('ai_ss',aiFirst(/@\s*([A-Z0-9\.\s\-\/]+?\s*SS)\b/i,txt)||aiFirst(/(?:33\/11\s*KV\s*)?([A-Z0-9\s\.\-\/]+?\s*SS)\b/i,txt));
+  aiSet('ai_eht',aiFirst(/(?:132|220|400)\s*KV\s*([A-Z0-9\s\.\-\/]+?)(?:\s*EHT|\s*SS|\s*Sub)/i,txt));
+  const bdDate=aiDate(aiFirst(/(?:Breakdown|Outage|Failure|Sick Report|Report)\s*(?:Date|Dt\.?)?\s*[:\-]?\s*(\d{1,2}[\.\/-]\d{1,2}[\.\/-]\d{2,4})/i,txt));
+  aiSet('ai_bd_date',bdDate);
+  aiSet('ai_est_date',aiDate(aiFirst(/(?:PM\s*Order\s*Generation\s*Date|Order\s*release\s*date|Estimate Date|Dt\.?)\s*[:\-]?\s*(\d{1,2}[\.\/-]\d{1,2}[\.\/-]\d{2,4})/i,txt)));
+  aiSet('ai_pm_type',aiFirst(/Order\s*Type\s*[:\-]?\s*(PM\s*\d{2}|T[-\s]?\d{3,6}|\b9[78]0\b|\b985\b)/i,txt).replace(/\s+/g,'')||aiFirst(/\b(PM\s*\d{2}|T[-\s]?\d{3,6}|\b9[78]0\b|\b985\b)\b/i,txt).replace(/\s+/g,''));
+  // Amount extraction: PM must prefer Net Total / Estimated Cost. Do not pick PM order number as amount.
+  let gross='',net='';
+  if(typ==='PM'){
+    net=aiMoneyAfter(/Net\s*Total\s*[:\-]?\s*(?:Rs\.?|₹)?\s*([0-9,]+(?:\.\d{1,2})?)/i,txt)||
+        aiMoneyAfter(/Estimated\s*Cost\s*[:\-]?\s*(?:Rs\.?|₹)?\s*([0-9,]+(?:\.\d{1,2})?)/i,txt);
+    gross=aiMoneyAfter(/Gross\s*Total\s*[:\-]?\s*(?:Rs\.?|₹)?\s*([0-9,]+(?:\.\d{1,2})?)/i,txt)||net;
+  }else{
+    gross=aiMoneyAfter(/(?:Gross|G\s*Amount|Total Estimate Cost|Estimated Cost)\s*[:\-]?\s*(?:Rs\.?|₹|INR)?\s*([0-9,]+(?:\.\d{1,2})?)/i,txt);
+    net=aiMoneyAfter(/(?:Net|N\s*Amount|Sanction Amount|Net Total|Estimated Cost)\s*[:\-]?\s*(?:Rs\.?|₹|INR)?\s*([0-9,]+(?:\.\d{1,2})?)/i,txt)||gross;
+  }
+  aiSet('ai_gross',gross);aiSet('ai_net',net||gross);
+  if(low.includes('t&d')||low.includes('t & d')||low.includes('t d works'))aiSet('ai_budget','T&D');else if(low.includes('r&m')||low.includes('r & m')||low.includes('breakdown'))aiSet('ai_budget','R&M');
 }
 function aiPickKnown(txt,list){const l=txt.toLowerCase();return list.find(x=>l.includes(String(x).toLowerCase()))||'';}
 function aiVerify(){
   aiRaw.manual=aiVal('ai_manual_text');const est=[aiRaw.estimate,aiRaw.manual].join('\n').toLowerCase(),bd=[aiRaw.breakdown,aiRaw.manual].join('\n').toLowerCase();
   const defects=[],checks=[];const add=(sev,title,msg)=>defects.push({sev,title,msg});const ck=(name,status,note)=>checks.push({name,status,note});
-  const imgCount=aiRaw.imageNames.length,work=aiVal('ai_work'),feeder=aiVal('ai_feeder'),estNo=aiVal('ai_est_no'),bdDate=aiVal('ai_bd_date'),estDate=aiVal('ai_est_date'),amt=+aiVal('ai_net')||+aiVal('ai_gross')||0,pm=aiVal('ai_pm_type'),budget=aiVal('ai_budget');
+  const imgCount=aiRaw.imageNames.length,work=aiVal('ai_work'),feeder=aiVal('ai_feeder'),estNo=aiVal('ai_est_no'),bdDate=aiVal('ai_bd_date'),estDate=aiVal('ai_est_date'),amt=+aiVal('ai_net')||+aiVal('ai_gross')||0,pm=aiVal('ai_pm_type'),budget=aiVal('ai_budget'),typ=aiVal('ai_upload_type')||aiVal('ai_doc_type'),dispatch=aiVal('ai_dispatch_no')||aiVal('ai_dispatch_no_2');
   ck('SAP estimate copy',document.getElementById('ai_est_file').files[0]?'ok':'bad',document.getElementById('ai_est_file').files[0]?.name||'Missing');
   ck('Breakdown / outage report',document.getElementById('ai_bd_file').files[0]?'ok':'bad',document.getElementById('ai_bd_file').files[0]?.name||'Missing');
   ck('Field image evidence',imgCount>=2?'ok':imgCount?'warn':'bad',imgCount?imgCount+' file(s) attached':'No images attached');
   ck('After-work / completion image',aiRaw.imageNames.some(n=>/after|complete|final|restored/i.test(n))?'ok':'warn','Use filename containing after / complete / final if available');
   ck('Damage / before image',aiRaw.imageNames.some(n=>/damage|before|fault|break|joint|cable/i.test(n))?'ok':'warn','Use filename containing damage / before / fault if available');
-  if(!estNo)add('high','Estimate number missing','SAP / Estimate number could not be identified. Enter it before sanction copy.');
+  if(!dispatch)add('high','Dispatch D.No. missing','Enter dispatch D.No. before generating sanction copy.');
+  if(!estNo)add('high','Estimate / order number missing','SAP / Estimate / PM order number could not be identified. Enter it before sanction copy.');
+  if(typ==='PM'&&estNo&&!/^9\d{7,14}$/.test(estNo))add('high','PM order number pattern wrong','For PM Order, main order number should be 9-series as seen in SAP PM order copy.');
+  if(typ==='Z'&&estNo&&!/^T[- ]?\d+/i.test(estNo)&&!/^9\d{7,14}$/.test(estNo))add('med','T&D / Z estimate number needs review','For T&D / Z-estimate, check if estimate reference should be T-series or SAP estimate number.');
   if(!work||work.length<25)add('high','Work description weak','Work description is missing or too short. It should clearly mention feeder, breakdown and material/work.');
   if(!feeder)add('med','Feeder name missing','Feeder name could not be extracted. Verify with breakdown report.');
   else if(bd && !bd.includes(feeder.toLowerCase().split(' feeder')[0].trim()))add('high','Feeder mismatch','Extracted feeder name is not clearly found in breakdown report text.');
@@ -1374,12 +1424,12 @@ function aiMakeReport(defects,checks,score){
   const rec=score>=75?'Process after officer review':score>=50?'Hold and seek clarification':'Do not process until defects are corrected';
   return 'TGSPDCL SCADA - ESTIMATE VERIFICATION REPORT\n'+
     'Generated: '+new Date().toLocaleString('en-IN')+'\n\n'+
-    'Estimate No.: '+(aiVal('ai_est_no')||'Not available')+'\nDivision / Section: '+(aiVal('ai_division')||'-')+' / '+(aiVal('ai_section')||'-')+'\nFeeder: '+(aiVal('ai_feeder')||'-')+'\nSubstation: '+(aiVal('ai_ss')||'-')+'\nBreakdown Date: '+(aiVal('ai_bd_date')||'-')+'\nPM Type / Budget: '+(aiVal('ai_pm_type')||'-')+' / '+(aiVal('ai_budget')||'-')+'\nAmount: ₹'+((+aiVal('ai_net')||+aiVal('ai_gross')||0).toLocaleString('en-IN'))+'\n\nWork Description:\n'+(aiVal('ai_work')||'-')+'\n\nChecklist:\n'+checks.map(c=>' - '+c.name+': '+c.status.toUpperCase()+' ('+(c.note||'')+')').join('\n')+'\n\nDefects / Observations:\n'+(defects.length?defects.map((d,i)=>(i+1)+'. ['+d.sev.toUpperCase()+'] '+d.title+' - '+d.msg).join('\n'):'No major defects found by rule engine.')+'\n\nVerification Score: '+score+'/100\nRecommendation: '+rec+'\n\nOfficer Remarks: ________________________________\n';
+    'Dispatch D.No.: '+(aiVal('ai_dispatch_no')||aiVal('ai_dispatch_no_2')||'Not entered')+'\nEstimate / Order No.: '+(aiVal('ai_est_no')||'Not available')+'\nDivision / Section: '+(aiVal('ai_division')||'-')+' / '+(aiVal('ai_section')||'-')+'\nFeeder: '+(aiVal('ai_feeder')||'-')+'\nSubstation: '+(aiVal('ai_ss')||'-')+'\nBreakdown Date: '+(aiVal('ai_bd_date')||'-')+'\nPM Type / Budget: '+(aiVal('ai_pm_type')||'-')+' / '+(aiVal('ai_budget')||'-')+'\nAmount: ₹'+((+aiVal('ai_net')||+aiVal('ai_gross')||0).toLocaleString('en-IN'))+'\n\nWork Description:\n'+(aiVal('ai_work')||'-')+'\n\nChecklist:\n'+checks.map(c=>' - '+c.name+': '+c.status.toUpperCase()+' ('+(c.note||'')+')').join('\n')+'\n\nDefects / Observations:\n'+(defects.length?defects.map((d,i)=>(i+1)+'. ['+d.sev.toUpperCase()+'] '+d.title+' - '+d.msg).join('\n'):'No major defects found by rule engine.')+'\n\nVerification Score: '+score+'/100\nRecommendation: '+rec+'\n\nOfficer Remarks: ________________________________\n';
 }
 function aiFeedback(i,correct){const d=aiLast.defects[i];if(!d)return;const key=(aiVal('ai_work').toLowerCase().match(/(breakdown|joint|cable|feeder|ptr|rmu|vcb|relay|pole)/)||[''])[0];const fb={title:d.title,correct:!!correct,key:key||'',at:new Date().toISOString(),estimate_no:aiVal('ai_est_no')};const arr=JSON.parse(localStorage.getItem(AI_FB)||'[]');arr.push(fb);localStorage.setItem(AI_FB,JSON.stringify(arr));if(db){db.collection('estimate_ai_feedback').add(fb).catch(()=>{});}toast(correct?'Saved as true defect':'Saved as false alarm','ok');}
 function aiApplyToSanction(){
-  const doc=aiVal('ai_doc_type')||'PM';setDT(doc);sw('newdoc');
-  aiSet('estimate_no',aiVal('ai_est_no'));aiSet('memo_date',aiVal('ai_est_date')||new Date().toISOString().slice(0,10));aiSet('lines_date',aiVal('ai_bd_date')||aiVal('ai_est_date')||new Date().toISOString().slice(0,10));aiSet('work_desc',aiVal('ai_work'));aiSet('works_type',aiVal('ai_budget')||'O&M');
+  const doc=aiVal('ai_doc_type')||'PM';const dispatch=aiVal('ai_dispatch_no')||aiVal('ai_dispatch_no_2');if(!dispatch){toast('Enter Dispatch D.No. before sanction copy','err');return;}setDT(doc);sw('newdoc');
+  aiSet('d_no',dispatch);aiSet('estimate_no',aiVal('ai_est_no'));aiSet('memo_date',aiVal('ai_est_date')||new Date().toISOString().slice(0,10));aiSet('lines_date',aiVal('ai_bd_date')||aiVal('ai_est_date')||new Date().toISOString().slice(0,10));aiSet('work_desc',aiVal('ai_work'));aiSet('works_type',aiVal('ai_budget')||'O&M');
   const div=aiVal('ai_division');if(div){aiSet('sel_div',div);onDiv();}const sub=aiVal('ai_subdivision');if(sub){aiSet('sel_sub',sub);onSub();}const sec=aiVal('ai_section');if(sec){aiSet('sel_sec',sec);onSec();}
   const pm=aiVal('ai_pm_type');if(pm){const sel=document.getElementById('sel_pm');if([...sel.options].some(o=>o.value===pm))sel.value=pm;}
   const gross=aiVal('ai_gross'),net=aiVal('ai_net')||gross;if(doc==='Z'){aiSet('amt_g',gross);aiSet('amt_n',net);cz();}else{aiSet('amount',net);ca();}
@@ -1387,7 +1437,7 @@ function aiApplyToSanction(){
 }
 async function aiGenerateSanction(){aiApplyToSanction();setTimeout(()=>dlOnly(),250);}
 function aiDownloadReport(){if(!aiLast.report){toast('Run verification first','err');return;}const a=document.createElement('a');a.href='data:text/plain;charset=utf-8,'+encodeURIComponent(aiLast.report);a.download='Estimate_Verification_'+(aiVal('ai_est_no')||new Date().toISOString().slice(0,10))+'.txt';a.click();}
-async function aiSaveVerification(){if(!aiLast.report){toast('Run verification first','err');return;}const rec={id:Date.now(),saved_on:new Date().toISOString(),estimate_no:aiVal('ai_est_no'),division:aiVal('ai_division'),section:aiVal('ai_section'),feeder:aiVal('ai_feeder'),amount:aiVal('ai_net')||aiVal('ai_gross'),score:aiLast.score,defects:aiLast.defects,checks:aiLast.checks,report:aiLast.report};const arr=JSON.parse(localStorage.getItem(AI_STORE)||'[]');arr.push(rec);localStorage.setItem(AI_STORE,JSON.stringify(arr));if(db){try{await db.collection('estimate_verifications').add(rec);}catch(e){}}toast('Verification saved','ok');}
+async function aiSaveVerification(){if(!aiLast.report){toast('Run verification first','err');return;}const rec={id:Date.now(),saved_on:new Date().toISOString(),dispatch_no:aiVal('ai_dispatch_no')||aiVal('ai_dispatch_no_2'),estimate_no:aiVal('ai_est_no'),division:aiVal('ai_division'),section:aiVal('ai_section'),feeder:aiVal('ai_feeder'),amount:aiVal('ai_net')||aiVal('ai_gross'),score:aiLast.score,defects:aiLast.defects,checks:aiLast.checks,report:aiLast.report};const arr=JSON.parse(localStorage.getItem(AI_STORE)||'[]');arr.push(rec);localStorage.setItem(AI_STORE,JSON.stringify(arr));if(db){try{await db.collection('estimate_verifications').add(rec);}catch(e){}}toast('Verification saved','ok');}
 
 function saveFB(){
   const cfg={apiKey:v('cfg_key'),authDomain:v('cfg_auth'),projectId:v('cfg_proj'),
